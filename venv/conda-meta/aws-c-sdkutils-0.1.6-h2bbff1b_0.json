@@ -1,0 +1,126 @@
+{
+  "build": "h2bbff1b_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [
+    "aws-c-common >=0.8.5,<0.8.6.0a0",
+    "vc >=14.1,<15.0a0",
+    "vs2015_runtime >=14.16.27012,<15.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\asus\\anaconda3\\pkgs\\aws-c-sdkutils-0.1.6-h2bbff1b_0",
+  "files": [
+    "Library/bin/aws-c-sdkutils.dll",
+    "Library/include/aws/sdkutils/aws_profile.h",
+    "Library/include/aws/sdkutils/endpoints_rule_engine.h",
+    "Library/include/aws/sdkutils/exports.h",
+    "Library/include/aws/sdkutils/partitions.h",
+    "Library/include/aws/sdkutils/resource_name.h",
+    "Library/include/aws/sdkutils/sdkutils.h",
+    "Library/lib/aws-c-sdkutils.lib",
+    "Library/lib/aws-c-sdkutils/cmake/aws-c-sdkutils-config.cmake",
+    "Library/lib/aws-c-sdkutils/cmake/shared/aws-c-sdkutils-targets-release.cmake",
+    "Library/lib/aws-c-sdkutils/cmake/shared/aws-c-sdkutils-targets.cmake",
+    ".nonadmin"
+  ],
+  "fn": "aws-c-sdkutils-0.1.6-h2bbff1b_0.conda",
+  "legacy_bz2_md5": "bf4c19b0db5049930d8b2fcc3b9172fa",
+  "license": "Apache-2.0",
+  "license_family": "Apache",
+  "link": {
+    "source": "C:\\Users\\asus\\anaconda3\\pkgs\\aws-c-sdkutils-0.1.6-h2bbff1b_0",
+    "type": 1
+  },
+  "md5": "84438b8b3b8ffeabc997bb8b1afef4c6",
+  "name": "aws-c-sdkutils",
+  "package_tarball_full_path": "C:\\Users\\asus\\anaconda3\\pkgs\\aws-c-sdkutils-0.1.6-h2bbff1b_0.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/aws-c-sdkutils.dll",
+        "path_type": "hardlink",
+        "sha256": "f7d8ad5fe0d583ff51add24907ea933b0cca48482800ad7ee10a7f621c32a2d6",
+        "sha256_in_prefix": "f7d8ad5fe0d583ff51add24907ea933b0cca48482800ad7ee10a7f621c32a2d6",
+        "size_in_bytes": 78848
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/aws_profile.h",
+        "path_type": "hardlink",
+        "sha256": "04b710d600f8c16b4c341ccc229df0d3608d168905261465fc6a862892a36fca",
+        "sha256_in_prefix": "04b710d600f8c16b4c341ccc229df0d3608d168905261465fc6a862892a36fca",
+        "size_in_bytes": 5406
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/endpoints_rule_engine.h",
+        "path_type": "hardlink",
+        "sha256": "7311386fd5b82cb7fd614d5008a410fb6ec75d6a344cd11c971bc09bcdc8d889",
+        "sha256_in_prefix": "7311386fd5b82cb7fd614d5008a410fb6ec75d6a344cd11c971bc09bcdc8d889",
+        "size_in_bytes": 10896
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/exports.h",
+        "path_type": "hardlink",
+        "sha256": "abb481889be585509fd9a24eec006a0fdb94cad8492faab271308325063c0c9c",
+        "sha256_in_prefix": "abb481889be585509fd9a24eec006a0fdb94cad8492faab271308325063c0c9c",
+        "size_in_bytes": 1006
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/partitions.h",
+        "path_type": "hardlink",
+        "sha256": "1ac42aaa3a4e0e9cc0b412fde602056889dbab6890ccce0ba920a2700ebfd5e6",
+        "sha256_in_prefix": "1ac42aaa3a4e0e9cc0b412fde602056889dbab6890ccce0ba920a2700ebfd5e6",
+        "size_in_bytes": 1032
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/resource_name.h",
+        "path_type": "hardlink",
+        "sha256": "b03210c0a8f2b5eb96a00fb5078ff15783fbfb8f076e6496254ce5951108a8b0",
+        "sha256_in_prefix": "b03210c0a8f2b5eb96a00fb5078ff15783fbfb8f076e6496254ce5951108a8b0",
+        "size_in_bytes": 1170
+      },
+      {
+        "_path": "Library/include/aws/sdkutils/sdkutils.h",
+        "path_type": "hardlink",
+        "sha256": "b47adea05740e8582692877e7f30ff9da77f73f5245b052371d4bae8cbe46399",
+        "sha256_in_prefix": "b47adea05740e8582692877e7f30ff9da77f73f5245b052371d4bae8cbe46399",
+        "size_in_bytes": 1633
+      },
+      {
+        "_path": "Library/lib/aws-c-sdkutils.lib",
+        "path_type": "hardlink",
+        "sha256": "d28f145b9e23acd41890badcd48eb363661a44c229dfaaa19b324ce4d60c997a",
+        "sha256_in_prefix": "d28f145b9e23acd41890badcd48eb363661a44c229dfaaa19b324ce4d60c997a",
+        "size_in_bytes": 22752
+      },
+      {
+        "_path": "Library/lib/aws-c-sdkutils/cmake/aws-c-sdkutils-config.cmake",
+        "path_type": "hardlink",
+        "sha256": "2691a68ae1c8e3f8ebea4bdba9e53f56e14bb129e3019374ae1bb35f4ca00058",
+        "sha256_in_prefix": "2691a68ae1c8e3f8ebea4bdba9e53f56e14bb129e3019374ae1bb35f4ca00058",
+        "size_in_bytes": 595
+      },
+      {
+        "_path": "Library/lib/aws-c-sdkutils/cmake/shared/aws-c-sdkutils-targets-release.cmake",
+        "path_type": "hardlink",
+        "sha256": "93e090a52467d9b224b0c396934463b7078ae50b5aa83bb66e4141e58ed57e07",
+        "sha256_in_prefix": "93e090a52467d9b224b0c396934463b7078ae50b5aa83bb66e4141e58ed57e07",
+        "size_in_bytes": 963
+      },
+      {
+        "_path": "Library/lib/aws-c-sdkutils/cmake/shared/aws-c-sdkutils-targets.cmake",
+        "path_type": "hardlink",
+        "sha256": "3c49b35bffaf5ad47edc3f2b4c808f0c77fd40dcfe9d3ad0e5a023909c99460e",
+        "sha256_in_prefix": "3c49b35bffaf5ad47edc3f2b4c808f0c77fd40dcfe9d3ad0e5a023909c99460e",
+        "size_in_bytes": 4345
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "47778737a4f801bf3eeea23e2429fce0404f7714feac0a9e8517390831d4f0f3",
+  "size": 49452,
+  "subdir": "win-64",
+  "timestamp": 1706690972693,
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/aws-c-sdkutils-0.1.6-h2bbff1b_0.conda",
+  "version": "0.1.6"
+}

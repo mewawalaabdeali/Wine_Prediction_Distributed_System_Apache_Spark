@@ -1,0 +1,151 @@
+{
+  "build": "h4797de2_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/win-64",
+  "constrains": [],
+  "depends": [
+    "gflags >=2.2.2,<2.3.0a0",
+    "vc >=14.1,<15.0a0",
+    "vs2015_runtime >=14.16.27012"
+  ],
+  "extracted_package_dir": "C:\\Users\\asus\\anaconda3\\pkgs\\glog-0.5.0-h4797de2_0",
+  "files": [
+    "Library/bin/glog.dll",
+    "Library/include/glog/export.h",
+    "Library/include/glog/log_severity.h",
+    "Library/include/glog/logging.h",
+    "Library/include/glog/raw_logging.h",
+    "Library/include/glog/stl_logging.h",
+    "Library/include/glog/vlog_is_on.h",
+    "Library/lib/cmake/glog/glog-config-version.cmake",
+    "Library/lib/cmake/glog/glog-config.cmake",
+    "Library/lib/cmake/glog/glog-modules.cmake",
+    "Library/lib/cmake/glog/glog-targets-release.cmake",
+    "Library/lib/cmake/glog/glog-targets.cmake",
+    "Library/lib/glog.lib",
+    "Library/lib/pkgconfig/libglog.pc",
+    ".nonadmin"
+  ],
+  "fn": "glog-0.5.0-h4797de2_0.tar.bz2",
+  "license": "BSD-3-Clause",
+  "license_family": "BSD",
+  "link": {
+    "source": "C:\\Users\\asus\\anaconda3\\pkgs\\glog-0.5.0-h4797de2_0",
+    "type": 1
+  },
+  "md5": "e861ca23ff3fdfb623614fef20de3ff7",
+  "name": "glog",
+  "package_tarball_full_path": "C:\\Users\\asus\\anaconda3\\pkgs\\glog-0.5.0-h4797de2_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/glog.dll",
+        "path_type": "hardlink",
+        "sha256": "88455e9385556ba1b43ef64e3fa26451e1e76eca4ab4f3ed6e34268f52ad7a3c",
+        "sha256_in_prefix": "88455e9385556ba1b43ef64e3fa26451e1e76eca4ab4f3ed6e34268f52ad7a3c",
+        "size_in_bytes": 150528
+      },
+      {
+        "_path": "Library/include/glog/export.h",
+        "path_type": "hardlink",
+        "sha256": "6b2881dbba32d86ecaf4ba75a7163bd276bab96036781e8c11278487be002f3d",
+        "sha256_in_prefix": "6b2881dbba32d86ecaf4ba75a7163bd276bab96036781e8c11278487be002f3d",
+        "size_in_bytes": 1000
+      },
+      {
+        "_path": "Library/include/glog/log_severity.h",
+        "path_type": "hardlink",
+        "sha256": "d14e933c216c5204fb4601e2328fd6ba30d595659c8fdeaba2281118f147e47d",
+        "sha256_in_prefix": "d14e933c216c5204fb4601e2328fd6ba30d595659c8fdeaba2281118f147e47d",
+        "size_in_bytes": 3936
+      },
+      {
+        "_path": "Library/include/glog/logging.h",
+        "path_type": "hardlink",
+        "sha256": "f0286201f15af7c8f3296b050b890d62b118d216d866313ffc19b908ac43acff",
+        "sha256_in_prefix": "f0286201f15af7c8f3296b050b890d62b118d216d866313ffc19b908ac43acff",
+        "size_in_bytes": 77068
+      },
+      {
+        "_path": "Library/include/glog/raw_logging.h",
+        "path_type": "hardlink",
+        "sha256": "a790fd948772acb4dffd35547d1cbc4282616c90438dc327c20b088fb12fabb6",
+        "sha256_in_prefix": "a790fd948772acb4dffd35547d1cbc4282616c90438dc327c20b088fb12fabb6",
+        "size_in_bytes": 6843
+      },
+      {
+        "_path": "Library/include/glog/stl_logging.h",
+        "path_type": "hardlink",
+        "sha256": "b25c2b4f9fbe1bad5507e0a6ee68e06d0693cd2e2e9b316424e85380ccd0f0b8",
+        "sha256_in_prefix": "b25c2b4f9fbe1bad5507e0a6ee68e06d0693cd2e2e9b316424e85380ccd0f0b8",
+        "size_in_bytes": 8076
+      },
+      {
+        "_path": "Library/include/glog/vlog_is_on.h",
+        "path_type": "hardlink",
+        "sha256": "22c87f8ad26a1e7690b13a4b8256ba5af0897e19445f0d900e04dc5726b3e28d",
+        "sha256_in_prefix": "22c87f8ad26a1e7690b13a4b8256ba5af0897e19445f0d900e04dc5726b3e28d",
+        "size_in_bytes": 5720
+      },
+      {
+        "_path": "Library/lib/cmake/glog/glog-config-version.cmake",
+        "path_type": "hardlink",
+        "sha256": "b7472d72134e9ea21101e40c9cda8710c07f50915692a665297d72b278f7ab76",
+        "sha256_in_prefix": "b7472d72134e9ea21101e40c9cda8710c07f50915692a665297d72b278f7ab76",
+        "size_in_bytes": 2809
+      },
+      {
+        "_path": "Library/lib/cmake/glog/glog-config.cmake",
+        "path_type": "hardlink",
+        "sha256": "69b42f8dc0265e25236c56c1da3d811f48427a0ef45ebbfbc92da694674baf1d",
+        "sha256_in_prefix": "69b42f8dc0265e25236c56c1da3d811f48427a0ef45ebbfbc92da694674baf1d",
+        "size_in_bytes": 973
+      },
+      {
+        "_path": "Library/lib/cmake/glog/glog-modules.cmake",
+        "path_type": "hardlink",
+        "sha256": "e39735041887035d5182a21333518d43d9190698137aec8e00139f959897217d",
+        "sha256_in_prefix": "e39735041887035d5182a21333518d43d9190698137aec8e00139f959897217d",
+        "size_in_bytes": 730
+      },
+      {
+        "_path": "Library/lib/cmake/glog/glog-targets-release.cmake",
+        "path_type": "hardlink",
+        "sha256": "2b3b9bd28db76abcaae124e384781aebe7b1bcb95621518bcb4b5d53309a7bfa",
+        "sha256_in_prefix": "2b3b9bd28db76abcaae124e384781aebe7b1bcb95621518bcb4b5d53309a7bfa",
+        "size_in_bytes": 866
+      },
+      {
+        "_path": "Library/lib/cmake/glog/glog-targets.cmake",
+        "path_type": "hardlink",
+        "sha256": "c4290d0145f5de72f30e4157ec99d4df6da9e1eac6df3f0f49055abb0c0673fd",
+        "sha256_in_prefix": "c4290d0145f5de72f30e4157ec99d4df6da9e1eac6df3f0f49055abb0c0673fd",
+        "size_in_bytes": 3583
+      },
+      {
+        "_path": "Library/lib/glog.lib",
+        "path_type": "hardlink",
+        "sha256": "e401fb4750a83c4274d435f46eba75b4ce85b2720ea96632a8ef14e2d604acc4",
+        "sha256_in_prefix": "e401fb4750a83c4274d435f46eba75b4ce85b2720ea96632a8ef14e2d604acc4",
+        "size_in_bytes": 59094
+      },
+      {
+        "_path": "Library/lib/pkgconfig/libglog.pc",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "D:/bld/glog_1620639019291/_h_env",
+        "sha256": "8dc529bb4220005d0163427d9776a464e90ca207e0bbdbb707777a39907b3424",
+        "sha256_in_prefix": "9671198e3055f5eb8f338e4ab72e1905398e82d64a40975cd556f35c0254d0be",
+        "size_in_bytes": 359
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "70db59161ddb68cd0f477f2fa8f5aec34e43de92682fe71095075c2ad20f629c",
+  "size": 92646,
+  "subdir": "win-64",
+  "timestamp": 1620639446951,
+  "url": "https://conda.anaconda.org/conda-forge/win-64/glog-0.5.0-h4797de2_0.tar.bz2",
+  "version": "0.5.0"
+}

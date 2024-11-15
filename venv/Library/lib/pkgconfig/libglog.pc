@@ -1,0 +1,10 @@
+prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+exec_prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/bin
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+
+Name: libglog
+Description: Google Log (glog) C++ logging framework
+Version: 0.5.0
+Libs: -L${libdir} -lglog
+Cflags: -I${includedir}

@@ -1,0 +1,11 @@
+prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+exec_prefix=${prefix}
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+
+Name: abseil_dll
+Description: Abseil DLL library
+URL: https://abseil.io/
+Version: 20240116
+Libs: -L${libdir} -labseil_dll 
+Cflags: -I${includedir}

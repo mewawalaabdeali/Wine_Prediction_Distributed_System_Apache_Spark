@@ -1,0 +1,16 @@
+#libevent pkg-config source file
+
+prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+exec_prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+
+Name: libevent_openssl
+Description: libevent_openssl adds openssl-based TLS support to libevent
+Version: 2.1.10
+Requires: libevent
+Conflicts:
+Libs: -L${libdir} -levent_openssl
+Libs.private:  -Lws2_32  -LC:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib/libssl.lib -LC:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib/libcrypto.lib
+Cflags: -I${includedir} 
+

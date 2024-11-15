@@ -1,0 +1,10 @@
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+
+Name: aws-cpp-sdk-config
+Description: 
+Version: 1.10.55
+Cflags: -I${includedir} 
+Libs: -L${libdir} -laws-cpp-sdk-config 
+Libs.private: 
+Requires:  aws-cpp-sdk-core

@@ -1,0 +1,16 @@
+#libevent pkg-config source file
+
+prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+exec_prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+
+Name: libevent
+Description: libevent is an asynchronous notification event loop library
+Version: 2.1.10
+Requires:
+Conflicts:
+Libs: -L${libdir} -levent
+Libs.private:  -Lws2_32
+Cflags: -I${includedir}
+

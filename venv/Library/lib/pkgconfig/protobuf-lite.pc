@@ -1,0 +1,12 @@
+prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+exec_prefix=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library
+libdir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/lib
+includedir=C:/Projects/Wine_Prediction_Distributed_System_Apache_Spark/venv/Library/include
+
+Name: Protocol Buffers
+Description: Google's Data Interchange Format
+Version: 25.3.0
+Requires: abseil_dll utf8_range
+Libs: -L${libdir} -lprotobuf-lite 
+Cflags: -I${includedir} -DPROTOBUF_USE_DLLS
+Conflicts: protobuf

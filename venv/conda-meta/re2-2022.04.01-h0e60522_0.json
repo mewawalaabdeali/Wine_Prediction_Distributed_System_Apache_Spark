@@ -1,0 +1,116 @@
+{
+  "build": "h0e60522_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/win-64",
+  "constrains": [],
+  "depends": [
+    "vc >=14.1,<15",
+    "vs2015_runtime >=14.16.27033"
+  ],
+  "extracted_package_dir": "C:\\Users\\asus\\anaconda3\\pkgs\\re2-2022.04.01-h0e60522_0",
+  "files": [
+    "Library/bin/re2.dll",
+    "Library/include/re2/filtered_re2.h",
+    "Library/include/re2/re2.h",
+    "Library/include/re2/set.h",
+    "Library/include/re2/stringpiece.h",
+    "Library/lib/cmake/re2/re2Config.cmake",
+    "Library/lib/cmake/re2/re2ConfigVersion.cmake",
+    "Library/lib/cmake/re2/re2Targets-release.cmake",
+    "Library/lib/cmake/re2/re2Targets.cmake",
+    "Library/lib/re2.lib",
+    ".nonadmin"
+  ],
+  "fn": "re2-2022.04.01-h0e60522_0.tar.bz2",
+  "license": "BSD-3-Clause",
+  "license_family": "BSD",
+  "link": {
+    "source": "C:\\Users\\asus\\anaconda3\\pkgs\\re2-2022.04.01-h0e60522_0",
+    "type": 1
+  },
+  "md5": "8e45c84e5524256a4939673d1e51298c",
+  "name": "re2",
+  "package_tarball_full_path": "C:\\Users\\asus\\anaconda3\\pkgs\\re2-2022.04.01-h0e60522_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/re2.dll",
+        "path_type": "hardlink",
+        "sha256": "003240ffb03f5d2834b8ef522cf23b5e785af2471fa95a522fd9238e32a74b57",
+        "sha256_in_prefix": "003240ffb03f5d2834b8ef522cf23b5e785af2471fa95a522fd9238e32a74b57",
+        "size_in_bytes": 1217024
+      },
+      {
+        "_path": "Library/include/re2/filtered_re2.h",
+        "path_type": "hardlink",
+        "sha256": "ffd01873f4e412adc1d638088f545f11a0a954d96e773ebfe5fb1fc49db29491",
+        "sha256_in_prefix": "ffd01873f4e412adc1d638088f545f11a0a954d96e773ebfe5fb1fc49db29491",
+        "size_in_bytes": 4247
+      },
+      {
+        "_path": "Library/include/re2/re2.h",
+        "path_type": "hardlink",
+        "sha256": "686ed0ad1df0c81ec8b821dc5db5b8863efc3581afe3fd24ab76478e1ad78f6e",
+        "sha256_in_prefix": "686ed0ad1df0c81ec8b821dc5db5b8863efc3581afe3fd24ab76478e1ad78f6e",
+        "size_in_bytes": 39768
+      },
+      {
+        "_path": "Library/include/re2/set.h",
+        "path_type": "hardlink",
+        "sha256": "7439551c49fb2c6d97f4779c988404aceaee0cac3a1f10f32af54d59a8360767",
+        "sha256_in_prefix": "7439551c49fb2c6d97f4779c988404aceaee0cac3a1f10f32af54d59a8360767",
+        "size_in_bytes": 2483
+      },
+      {
+        "_path": "Library/include/re2/stringpiece.h",
+        "path_type": "hardlink",
+        "sha256": "4e40fb96813f7e0fb0b0ce790d66f0c60b275a2fe79c51d3dc37475aaa7539b0",
+        "sha256_in_prefix": "4e40fb96813f7e0fb0b0ce790d66f0c60b275a2fe79c51d3dc37475aaa7539b0",
+        "size_in_bytes": 6419
+      },
+      {
+        "_path": "Library/lib/cmake/re2/re2Config.cmake",
+        "path_type": "hardlink",
+        "sha256": "4cbcaa35f6f9c25efcc18ed80335705a415f8117934cfc7370881fd2713e5732",
+        "sha256_in_prefix": "4cbcaa35f6f9c25efcc18ed80335705a415f8117934cfc7370881fd2713e5732",
+        "size_in_bytes": 1395
+      },
+      {
+        "_path": "Library/lib/cmake/re2/re2ConfigVersion.cmake",
+        "path_type": "hardlink",
+        "sha256": "8078f7fe86e37d7b1183d70e6756fdd938a5c614adf42d9de68692f957fb3fb7",
+        "sha256_in_prefix": "8078f7fe86e37d7b1183d70e6756fdd938a5c614adf42d9de68692f957fb3fb7",
+        "size_in_bytes": 2948
+      },
+      {
+        "_path": "Library/lib/cmake/re2/re2Targets-release.cmake",
+        "path_type": "hardlink",
+        "sha256": "248e18653fdbdbb9a5a958235a526eed2d4583b2cfaa3610d2d836e8c2bebcc8",
+        "sha256_in_prefix": "248e18653fdbdbb9a5a958235a526eed2d4583b2cfaa3610d2d836e8c2bebcc8",
+        "size_in_bytes": 852
+      },
+      {
+        "_path": "Library/lib/cmake/re2/re2Targets.cmake",
+        "path_type": "hardlink",
+        "sha256": "8415623f8da6f6a9521a53902e05f6bbe64eff496e2bc99b2b3427d01c492759",
+        "sha256_in_prefix": "8415623f8da6f6a9521a53902e05f6bbe64eff496e2bc99b2b3427d01c492759",
+        "size_in_bytes": 3325
+      },
+      {
+        "_path": "Library/lib/re2.lib",
+        "path_type": "hardlink",
+        "sha256": "c4403ca91e984ba12ea6c35d090d96a1195aa620ef50dfb73b4e5ae1a130dd1e",
+        "sha256_in_prefix": "c4403ca91e984ba12ea6c35d090d96a1195aa620ef50dfb73b4e5ae1a130dd1e",
+        "size_in_bytes": 4139076
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "8233cfe4e5dfbd257293dfe9e54be5cbcf198e83f19e71f92e7e4b9161a0af5a",
+  "size": 482977,
+  "subdir": "win-64",
+  "timestamp": 1648884584886,
+  "url": "https://conda.anaconda.org/conda-forge/win-64/re2-2022.04.01-h0e60522_0.tar.bz2",
+  "version": "2022.04.01"
+}
