@@ -90,8 +90,8 @@ def train_and_evaluate_model(train_data, test_data, model, label_col="quality", 
 
 def main():
     # File locations
-    train_file = "/FileStore/tables/TrainingDataset.csv"
-    test_file = "/FileStore/tables/ValidationDataset.csv"
+    train_file = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv"
+    test_file = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
 
     # Read and clean data
     df_train = read_and_clean_data(train_file)
