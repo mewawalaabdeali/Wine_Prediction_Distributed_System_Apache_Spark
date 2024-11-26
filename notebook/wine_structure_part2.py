@@ -85,7 +85,7 @@ def save_model_to_s3(model, local_dir, s3_bucket, s3_prefix):
 
 def main():
     # File locations
-    train_file = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv"
+    train_file = "s3://winepredictionabdeali/TrainingDataset.csv"
     s3_bucket = "winepredictionabdeali"
     s3_prefix = "Wine_models"
     local_model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models"
