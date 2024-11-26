@@ -1,8 +1,9 @@
+from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.classification import LogisticRegression, RandomForestClassifier
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.mllib.regression import LabeledPoint
+from pyspark.mllib.classification import LogisticRegressionWithLBFGS
+from pyspark.mllib.tree import RandomForest
+from pyspark.mllib.evaluation import MulticlassMetrics
 import boto3
 import os
 import logging
@@ -10,156 +11,107 @@ import logging
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Create Spark session
-spark = SparkSession.builder.appName("WineQualityModel").getOrCreate()
+# Initialize Spark
+conf = SparkConf().setAppName("WineQualityPrediction_MLlib")
+sc = SparkContext(conf=conf)
+spark = SparkSession(sc)
 
-def read_and_clean_data(file_path, file_type='csv', delimiter=';'):
-    """Read data from file and clean column names."""
-    try:
-        logging.info(f"Reading data from {file_path}")
-        df = spark.read.format(file_type).option("header", "true").option("inferSchema", "true").option("sep", delimiter).load(file_path)
-        for col_name in df.columns:
-            df = df.withColumnRenamed(col_name, col_name.replace('"', '').strip())
-        logging.info(f"Data schema after cleaning: {df.printSchema()}")
-        return df
-    except Exception as e:
-        logging.error(f"Error reading or cleaning data: {str(e)}")
-        raise
+def read_and_clean_data(file_path, delimiter=";"):
+    """Read data from CSV and clean column names."""
+    logging.info(f"Reading data from {file_path}")
+    df = spark.read.csv(file_path, header=True, inferSchema=True, sep=delimiter)
+    for col_name in df.columns:
+        df = df.withColumnRenamed(col_name, col_name.replace('"', '').strip())
+    logging.info("Data schema cleaned.")
+    return df
 
-def balance_data(df, label_col="quality", majority_classes=[5, 6], minority_classes=[3, 4, 7, 8]):
-    """Balance dataset through oversampling."""
-    try:
-        logging.info("Balancing the dataset...")
-        df_majority = df.filter(col(label_col).isin(majority_classes))
-        majority_count = df_majority.count()
-        oversampled_dataframes = [df_majority]
-        
-        for minority_class in minority_classes:
-            df_minority = df.filter(col(label_col) == minority_class)
-            minority_count = df_minority.count()
-            if minority_count > 0:
-                oversample_ratio = majority_count / minority_count
-                df_oversampled = df_minority.sample(withReplacement=True, fraction=oversample_ratio)
-                oversampled_dataframes.append(df_oversampled)
+def prepare_data(df, feature_cols, label_col):
+    """Prepare data for MLlib by converting to LabeledPoint."""
+    def row_to_labeled_point(row):
+        features = [row[col] for col in feature_cols]
+        return LabeledPoint(row[label_col], features)
+    
+    rdd = df.rdd.map(row_to_labeled_point)
+    logging.info("Data prepared for MLlib.")
+    return rdd
 
-        df_balanced = oversampled_dataframes[0]
-        for oversampled_df in oversampled_dataframes[1:]:
-            df_balanced = df_balanced.union(oversampled_df)
-        
-        logging.info("Dataset balanced successfully.")
-        return df_balanced
-    except Exception as e:
-        logging.error(f"Error in balancing data: {str(e)}")
-        raise
+def train_test_split(rdd, train_ratio=0.8, seed=42):
+    """Split the data into train and test sets."""
+    train_data, test_data = rdd.randomSplit([train_ratio, 1 - train_ratio], seed=seed)
+    logging.info(f"Train-test split: {train_data.count()} training rows, {test_data.count()} test rows.")
+    return train_data, test_data
 
-def preprocess_data(df, feature_cols, label_col):
-    """Preprocess data by creating feature vector and scaling."""
-    try:
-        logging.info("Preprocessing data...")
-        assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
-        df_features = assembler.transform(df)
-        scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withStd=True, withMean=True)
-        scaler_model = scaler.fit(df_features)
-        df_scaled = scaler_model.transform(df_features)
-        df_final = df_scaled.select("scaledFeatures", label_col)
-        logging.info("Data preprocessing complete.")
-        return df_final
-    except Exception as e:
-        logging.error(f"Error in preprocessing data: {str(e)}")
-        raise
+def train_and_evaluate_logistic_regression(train_data, test_data):
+    """Train and evaluate a logistic regression model."""
+    logging.info("Training Logistic Regression model...")
+    model = LogisticRegressionWithLBFGS.train(train_data, iterations=100)
 
-def train_and_evaluate_model(train_data, test_data, model, label_col="quality", features_col="scaledFeatures"):
-    """Train and evaluate a model."""
-    try:
-        logging.info(f"Training {model.__class__.__name__}...")
-        trained_model = model.fit(train_data)
-        predictions = trained_model.transform(test_data)
+    predictions = test_data.map(lambda lp: (float(model.predict(lp.features)), lp.label))
+    metrics = MulticlassMetrics(predictions)
+    accuracy = metrics.accuracy
+    logging.info(f"Logistic Regression Accuracy: {accuracy:.2f}")
+    return model, accuracy
 
-        evaluator = MulticlassClassificationEvaluator(labelCol=label_col, predictionCol="prediction", metricName="accuracy")
-        accuracy = evaluator.evaluate(predictions)
-        evaluator.setMetricName("f1")
-        f1_score = evaluator.evaluate(predictions)
-
-        logging.info(f"{model.__class__.__name__} Accuracy: {accuracy:.2f}")
-        logging.info(f"{model.__class__.__name__} F1 Score: {f1_score:.2f}")
-        return trained_model, accuracy, f1_score
-    except Exception as e:
-        logging.error(f"Error training or evaluating {model.__class__.__name__}: {str(e)}")
-        raise
-
-def upload_to_s3(local_path, bucket_name, s3_prefix):
-    """Upload a directory or file to an S3 bucket."""
-    try:
-        s3_client = boto3.client('s3')
-        for root, dirs, files in os.walk(local_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                s3_key = os.path.join(s3_prefix, os.path.relpath(file_path, local_path))
-                s3_client.upload_file(file_path, bucket_name, s3_key)
-        logging.info(f"Uploaded {local_path} to s3://{bucket_name}/{s3_prefix}")
-    except Exception as e:
-        logging.error(f"Error uploading to S3: {str(e)}")
-        raise
+def train_and_evaluate_random_forest(train_data, test_data, num_trees=10, max_depth=5):
+    """Train and evaluate a random forest model."""
+    logging.info("Training Random Forest model...")
+    model = RandomForest.trainClassifier(
+        train_data, numClasses=10, categoricalFeaturesInfo={},
+        numTrees=num_trees, maxDepth=max_depth, seed=42
+    )
+    
+    predictions = test_data.map(lambda lp: (float(model.predict(lp.features)), lp.label))
+    metrics = MulticlassMetrics(predictions)
+    accuracy = metrics.accuracy
+    logging.info(f"Random Forest Accuracy: {accuracy:.2f}")
+    return model, accuracy
 
 def save_model_to_s3(model, local_dir, s3_bucket, s3_prefix):
-    """Save the model locally and upload to S3."""
-    try:
-        if not os.path.exists(local_dir):
-            os.makedirs(local_dir)
-        model_path = os.path.join(local_dir, model.uid)
-        model.save(model_path)
-        logging.info(f"Model saved locally at {model_path}")
-        upload_to_s3(model_path, s3_bucket, s3_prefix)
-    except Exception as e:
-        logging.error(f"Error saving model to S3: {str(e)}")
-        raise
-
-def train_and_save_models(df_train, df_test, s3_bucket, s3_prefix, local_model_dir):
-    """Train Logistic Regression and Random Forest models and save them to S3."""
-    # Train and save Logistic Regression model
-    lr_model = LogisticRegression(featuresCol="scaledFeatures", labelCol="quality", maxIter=200, regParam=0.1, elasticNetParam=0.5)
-    lr_trained, lr_accuracy, lr_f1 = train_and_evaluate_model(df_train, df_test, lr_model)
-    save_model_to_s3(lr_trained, local_model_dir, s3_bucket, os.path.join(s3_prefix, "logistic_regression"))
-
-    # Train and save Random Forest model
-    rf_model = RandomForestClassifier(featuresCol="scaledFeatures", labelCol="quality", numTrees=21, maxDepth=30)
-    rf_trained, rf_accuracy, rf_f1 = train_and_evaluate_model(df_train, df_test, rf_model)
-    save_model_to_s3(rf_trained, local_model_dir, s3_bucket, os.path.join(s3_prefix, "random_forest"))
-
-    # Display metrics
-    print("***********************************************************************")
-    print("++++++++++++++++++++++++++++++ Metrics ++++++++++++++++++++++++++++++++")
-    print("***********************************************************************")
-    print(f"Logistic Regression Accuracy: {lr_accuracy:.2f}, F1 Score: {lr_f1:.2f}")
-    print(f"Random Forest Accuracy: {rf_accuracy:.2f}, F1 Score: {rf_f1:.2f}")
-    print("***********************************************************************")
-    logging.info("All models trained and saved to S3 successfully.")
+    """Save the model locally and upload it to S3."""
+    if not os.path.exists(local_dir):
+        os.makedirs(local_dir)
+    model_path = os.path.join(local_dir, "model")
+    model.save(sc, model_path)
+    
+    # Upload model to S3
+    s3_client = boto3.client('s3')
+    for root, dirs, files in os.walk(model_path):
+        for file in files:
+            s3_client.upload_file(
+                os.path.join(root, file), s3_bucket,
+                os.path.join(s3_prefix, os.path.relpath(os.path.join(root, file), model_path))
+            )
+    logging.info(f"Model uploaded to S3: s3://{s3_bucket}/{s3_prefix}")
 
 def main():
-    # S3 Bucket and Prefix
+    # File locations
+    train_file = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv"
     s3_bucket = "winepredictionabdeali"
     s3_prefix = "Wine_models"
-    local_model_dir = "/tmp/models"
-
-    # File locations
-    train_file = "/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv"
-    test_file = "/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
-
-    # Read and clean data
-    df_train = read_and_clean_data(train_file)
-    df_test = read_and_clean_data(test_file)
-
-    # Balance the training data
-    df_train_balanced = balance_data(df_train)
-
-    # Preprocess training and testing data
-    feature_cols = df_train_balanced.columns[:-1]
+    local_model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models"
+    
+    # Read and preprocess data
+    df = read_and_clean_data(train_file)
+    feature_cols = df.columns[:-1]  # All columns except 'quality'
     label_col = "quality"
-    df_train_final = preprocess_data(df_train_balanced, feature_cols, label_col)
-    df_test_final = preprocess_data(df_test, feature_cols, label_col)
+    
+    # Prepare data for MLlib
+    rdd = prepare_data(df, feature_cols, label_col)
+    
+    # Train-test split
+    train_data, test_data = train_test_split(rdd)
+    
+    # Train and evaluate Logistic Regression
+    lr_model, lr_accuracy = train_and_evaluate_logistic_regression(train_data, test_data)
+    save_model_to_s3(lr_model, local_model_dir, s3_bucket, os.path.join(s3_prefix, "logistic_regression"))
 
-    # Train and save models
-    train_and_save_models(df_train_final, df_test_final, s3_bucket, s3_prefix, local_model_dir)
+    # Train and evaluate Random Forest
+    rf_model, rf_accuracy = train_and_evaluate_random_forest(train_data, test_data)
+    save_model_to_s3(rf_model, local_model_dir, s3_bucket, os.path.join(s3_prefix, "random_forest"))
+    
+    # Print metrics
+    print(f"Logistic Regression Accuracy: {lr_accuracy:.2f}")
+    print(f"Random Forest Accuracy: {rf_accuracy:.2f}")
 
 if __name__ == "__main__":
     main()
