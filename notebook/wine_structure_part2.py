@@ -19,7 +19,7 @@ spark = SparkSession(sc)
 def read_and_clean_data(file_path, delimiter=";"):
     """Read data from CSV and clean column names."""
     logging.info(f"Reading data from {file_path}")
-    df = spark.read.csv(file_path, header=True, inferSchema=True, sep=delimiter)
+    df = spark.read.csv(file_path, header=True, inferSchema=True, sep=";")
     for col_name in df.columns:
         df = df.withColumnRenamed(col_name, col_name.replace('"', '').strip())
     logging.info("Data schema cleaned.")
