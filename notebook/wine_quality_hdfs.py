@@ -14,7 +14,7 @@ spark = SparkSession.builder \
 # Step 2: Load and Clean Data
 # Use HDFS or S3 paths for file access
 data = spark.read.csv("hdfs://172.31.37.198:9000/dataset/TrainingDataset.csv", header=True, inferSchema=True, sep=";")
-data = data.repartition(10)  # (4 executors * 2 cores * 2)
+data = data.repartition(16)  # (4 executors * 2 cores * 2)
 
 
 # Clean column names to remove extra quotes
