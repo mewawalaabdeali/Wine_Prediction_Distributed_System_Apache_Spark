@@ -10,7 +10,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 2: Load and Clean Data
-data = spark.read.csv("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/notebook/TrainingDataset.csv", header=True, inferSchema=True, sep=";")
+data = spark.read.csv("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv", header=True, inferSchema=True, sep=";")
 
 # Clean column names to remove extra quotes
 data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])
