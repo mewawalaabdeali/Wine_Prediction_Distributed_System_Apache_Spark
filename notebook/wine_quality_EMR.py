@@ -15,7 +15,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 2: Load Training Data
-data = spark.read.csv("hdfs://52.91.55.65:9000/dataset/TrainingDataset.csv", 
+data = spark.read.csv("hdfs://172.31.21.150:9000/dataset/TrainingDataset.csv", 
                       header=True, inferSchema=True, sep=";")
 data = data.repartition(16)
 
