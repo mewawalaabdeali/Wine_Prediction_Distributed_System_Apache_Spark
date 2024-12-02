@@ -15,7 +15,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 2: Load Training Data
-data = spark.read.csv("/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv", 
+data = spark.read.csv("hdfs://52.91.55.65:9000/dataset/TrainingDataset.csv", 
                       header=True, inferSchema=True, sep=";")
 data = data.repartition(16)
 
