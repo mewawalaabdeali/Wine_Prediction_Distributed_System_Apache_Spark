@@ -15,13 +15,13 @@ spark = SparkSession.builder \
 # Step 2: Download Model and Validation Dataset from S3
 s3 = boto3.client('s3')
 model_key = "models/latest_model.model"  # Replace with dynamic logic to get the latest model
-validation_data_key = "dataset/ValidationDataset.csv"
+validation_data_key = "ValidationDataset.csv"
 
 local_model_path = "/tmp/latest_model.model"
 local_validation_path = "/tmp/ValidationDataset.csv"
 
-s3.download_file(Bucket="your-s3-bucket", Key=model_key, Filename=local_model_path)
-s3.download_file(Bucket="your-s3-bucket", Key=validation_data_key, Filename=local_validation_path)
+s3.download_file(Bucket="winepredictionabdeali", Key=model_key, Filename=local_model_path)
+s3.download_file(Bucket="winepredictionabdeali", Key=validation_data_key, Filename=local_validation_path)
 
 # Step 3: Load Validation Data
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
@@ -48,7 +48,7 @@ results = predictions.select("features", "quality", "prediction", "probability")
 local_prediction_path = "/tmp/WinePredictions.csv"
 results.write.csv(local_prediction_path, header=True, mode="overwrite")
 
-s3.upload_file(Filename=local_prediction_path, Bucket="your-s3-bucket", Key="output/WinePredictions.csv")
+s3.upload_file(Filename=local_prediction_path, Bucket="winepredictionabdeali", Key="output/WinePredictions.csv")
 
 # Stop Spark Session
 spark.stop()

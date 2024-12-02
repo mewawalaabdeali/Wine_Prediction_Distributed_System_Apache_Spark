@@ -15,7 +15,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 2: Load Training Data
-data = spark.read.csv("s3a://your-s3-bucket/dataset/TrainingDataset.csv", 
+data = spark.read.csv("s3://winepredictionabdeali/TrainingDataset.csv", 
                       header=True, inferSchema=True, sep=";")
 data = data.repartition(16)
 
