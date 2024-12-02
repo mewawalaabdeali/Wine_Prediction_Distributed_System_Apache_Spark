@@ -4,6 +4,7 @@ from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassi
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, TrainValidationSplit
 import boto3
+import os
 
 # Step 1: Initialize Spark Session
 spark = SparkSession.builder \
@@ -75,17 +76,26 @@ best_model = rf_model if rf_accuracy >= dt_accuracy else dt_model
 best_model_name = "RandomForest" if rf_accuracy >= dt_accuracy else "DecisionTree"
 print(f"Best Model: {best_model_name}")
 
-# Step 10: Save Best Model to S3
+# Initialize S3 client
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
-model_path = f"Wine_models/{best_model_name}_model"
-local_model_path = f"/tmp/{best_model_name}_model"
 
+# Define paths
+model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models"
+model_filename = f"{best_model_name}_model"
+local_model_path = os.path.join(model_dir, model_filename)  # Save in the models directory
+s3_model_path = f"Wine_models/{model_filename}"  # Path in S3
+
+# Ensure the local directory exists
+os.makedirs(model_dir, exist_ok=True)
+
+# Save the model locally
 best_model.write().overwrite().save(local_model_path)
+print(f"Model saved locally at: {local_model_path}")
 
-# Upload to S3
-s3_client.upload_file(local_model_path, bucket_name, model_path)
-print(f"Best model saved to S3 at: s3://{bucket_name}/{model_path}")
+# Upload the model to S3
+s3_client.upload_file(local_model_path, bucket_name, s3_model_path)
+print(f"Best model saved to S3 at: s3://{bucket_name}/{s3_model_path}")
 
 # Step 11: Stop Spark Session
 spark.stop()
