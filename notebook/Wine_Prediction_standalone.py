@@ -3,6 +3,8 @@ import os
 from pyspark.sql import SparkSession
 from pyspark.ml.classification import RandomForestClassificationModel
 from pyspark.ml.feature import VectorAssembler
+import shutil
+
 
 # Step 1: Initialize Spark Session
 spark = SparkSession.builder \
