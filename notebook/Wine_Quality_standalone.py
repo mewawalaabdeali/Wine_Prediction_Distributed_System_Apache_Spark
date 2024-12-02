@@ -2,12 +2,12 @@ from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.ml.tuning import ParamGridBuilder, TrainValidationSplit
 import boto3
-import uuid
 
 # Step 1: Initialize Spark Session
 spark = SparkSession.builder \
-    .appName("Wine_Quality_single_machine_with_scaling_and_s3") \
+    .appName("Wine_Quality_Single_Machine_Enhanced") \
     .master("local[*]") \
     .getOrCreate()
 
@@ -15,7 +15,7 @@ spark = SparkSession.builder \
 data = spark.read.csv("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv", 
                       header=True, inferSchema=True, sep=";")
 
-# Clean column names to remove extra quotes
+# Clean column names
 data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])
 
 # Verify 'quality' column exists
@@ -25,59 +25,67 @@ if 'quality' not in data.columns:
 # Step 3: Train-Test Split
 train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
 
-# Step 4: Assemble Features and Labels
+# Step 4: Assemble Features
 feature_cols = [col for col in train_data.columns if col != "quality"]
-assembler = VectorAssembler(inputCols=feature_cols, outputCol="unscaled_features")
+assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
+train_data = assembler.transform(train_data).select("features", "quality")
+test_data = assembler.transform(test_data).select("features", "quality")
 
-# Add Scaling
-scaler = StandardScaler(inputCol="unscaled_features", outputCol="features", withStd=True, withMean=True)
-
-train_data = assembler.transform(train_data)
-test_data = assembler.transform(test_data)
-
+# Step 5: Feature Scaling
+scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 scaler_model = scaler.fit(train_data)
-train_data = scaler_model.transform(train_data).select("features", "quality")
-test_data = scaler_model.transform(test_data).select("features", "quality")
+train_data = scaler_model.transform(train_data).select("scaled_features", "quality").withColumnRenamed("scaled_features", "features")
+test_data = scaler_model.transform(test_data).select("scaled_features", "quality").withColumnRenamed("scaled_features", "features")
 
-# Step 5: Train Models and Select Best
-models = {
-    "RandomForest": RandomForestClassifier(labelCol="quality", featuresCol="features", numTrees=10),
-    "DecisionTree": DecisionTreeClassifier(labelCol="quality", featuresCol="features")
-}
+# Step 6: Initialize Models
+rf = RandomForestClassifier(labelCol="quality", featuresCol="features", seed=42)
+dt = DecisionTreeClassifier(labelCol="quality", featuresCol="features", seed=42)
 
+# Step 7: Hyperparameter Tuning for Random Forest
+paramGrid_rf = ParamGridBuilder() \
+    .addGrid(rf.numTrees, [10, 20, 30]) \
+    .addGrid(rf.maxDepth, [5, 10, 15]) \
+    .build()
+
+train_val_split = TrainValidationSplit(estimator=rf,
+                                       estimatorParamMaps=paramGrid_rf,
+                                       evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
+                                       trainRatio=0.8)
+
+# Train Random Forest
+rf_model = train_val_split.fit(train_data).bestModel
+
+# Train Decision Tree (without hyperparameter tuning for simplicity)
+dt_model = dt.fit(train_data)
+
+# Step 8: Evaluate Models
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
 
-best_model_name = None
-best_model = None
-best_accuracy = 0.0
+rf_predictions = rf_model.transform(test_data)
+dt_predictions = dt_model.transform(test_data)
 
-for model_name, model in models.items():
-    print(f"Training {model_name}...")
-    trained_model = model.fit(train_data)
-    predictions = trained_model.transform(test_data)
-    accuracy = evaluator.evaluate(predictions)
-    print(f"{model_name} Accuracy: {accuracy * 100:.2f}%")
-    
-    if accuracy > best_accuracy:
-        best_model_name = model_name
-        best_model = trained_model
-        best_accuracy = accuracy
+rf_accuracy = evaluator.evaluate(rf_predictions)
+dt_accuracy = evaluator.evaluate(dt_predictions)
 
-if best_model is None or best_accuracy < 0.8:
-    print("No model met the accuracy threshold of 80%.")
-else:
-    print(f"Best Model: {best_model_name} with Accuracy: {best_accuracy * 100:.2f}%")
-    # Save Best Model to S3
-    # Save Best Model to S3
-    s3 = boto3.client('s3')
-    bucket_name = "winepredictionabdeali"
-    key_prefix = "Wine_models/"  # Folder path in the bucket
+print(f"Random Forest Accuracy: {rf_accuracy * 100:.2f}%")
+print(f"Decision Tree Accuracy: {dt_accuracy * 100:.2f}%")
 
-    model_path = f"/tmp/{best_model_name}_{uuid.uuid4().hex}.model"
-    best_model.write().overwrite().save(model_path)
-    s3.upload_file(model_path, bucket_name, f"{key_prefix}{best_model_name}.model")
-    print(f"Saved best model to S3: s3://{bucket_name}/{key_prefix}{best_model_name}.model")
+# Step 9: Select Best Model
+best_model = rf_model if rf_accuracy >= dt_accuracy else dt_model
+best_model_name = "RandomForest" if rf_accuracy >= dt_accuracy else "DecisionTree"
+print(f"Best Model: {best_model_name}")
 
+# Step 10: Save Best Model to S3
+s3_client = boto3.client('s3')
+bucket_name = "winepredictionabdeali"
+model_path = f"Wine_models/{best_model_name}_model"
+local_model_path = f"/tmp/{best_model_name}_model"
 
-# Stop Spark Session
+best_model.write().overwrite().save(local_model_path)
+
+# Upload to S3
+s3_client.upload_file(local_model_path, bucket_name, model_path)
+print(f"Best model saved to S3 at: s3://{bucket_name}/{model_path}")
+
+# Step 11: Stop Spark Session
 spark.stop()
