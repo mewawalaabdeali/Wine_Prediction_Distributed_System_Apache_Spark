@@ -18,7 +18,7 @@ bucket_name = "winepredictionabdeali"
 model_key = "Wine_models/RandomForest_model"  # Update dynamically if needed
 
 # Local paths
-local_model_dir = "/tmp/RandomForest_model"
+local_model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/tmp"
 local_validation_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
 
 # Step 3: Load Validation Dataset
