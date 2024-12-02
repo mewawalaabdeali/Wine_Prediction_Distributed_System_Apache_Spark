@@ -13,11 +13,11 @@ spark = SparkSession.builder \
 # Step 2: S3 Configurations
 s3 = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
-model_key = "Wine_models/latest_model.model"  # Replace with dynamic logic if needed
+model_key = "Wine_models/RandomForest_model"  # Update dynamically if needed
 
-# Local temporary paths
-local_model_path = "/tmp/latest_model.model"
-local_validation_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"  # Same as the training file directory
+# Local paths
+local_model_dir = "/tmp/RandomForest_model"
+local_validation_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
 
 # Step 3: Load Validation Dataset
 data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
@@ -31,8 +31,25 @@ assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 validation_data = assembler.transform(data).select("features", "quality")
 
 # Step 5: Download and Load the Best Model
-s3.download_file(Bucket=bucket_name, Key=model_key, Filename=local_model_path)
-model = RandomForestClassificationModel.load(local_model_path)
+if os.path.exists(local_model_dir):
+    shutil.rmtree(local_model_dir)  # Clear the local directory if it exists
+
+os.makedirs(local_model_dir, exist_ok=True)
+
+# Download all files from the model directory in S3
+paginator = s3.get_paginator("list_objects_v2")
+for page in paginator.paginate(Bucket=bucket_name, Prefix=model_key):
+    for obj in page.get("Contents", []):
+        key = obj["Key"]
+        if key.endswith("/"):  # Skip folders
+            continue
+        relative_path = os.path.relpath(key, model_key)
+        local_file_path = os.path.join(local_model_dir, relative_path)
+        os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+        s3.download_file(bucket_name, key, local_file_path)
+
+# Load the model
+model = RandomForestClassificationModel.load(local_model_dir)
 
 # Step 6: Make Predictions
 predictions = model.transform(validation_data)
@@ -41,10 +58,8 @@ predictions = model.transform(validation_data)
 output_path_local = "/tmp/WinePredictions.csv"
 output_key_s3 = "Wine_models/WinePredictions.csv"
 
-predictions.select("features", "quality", "prediction").write.csv(output_path_local, header=True, mode="overwrite")
-s3.upload_file(Filename=output_path_local, Bucket=bucket_name, Key=output_key_s3)
+# Save predictions as a single CSV
+predictions.select("features", "quality", "prediction").write.csv(
+    path=output_path_local, header=True, mode="overwrite")
 
-print(f"Predictions saved to S3: s3://{bucket_name}/{output_key_s3}")
-
-# Stop Spark Session
-spark.stop()
+# Upload the consolidated predic

@@ -5,6 +5,7 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, TrainValidationSplit
 import boto3
 import os
+import shutil
 
 # Step 1: Initialize Spark Session
 spark = SparkSession.builder \
@@ -90,11 +91,17 @@ s3_model_path = f"Wine_models/{model_filename}"  # Path in S3
 os.makedirs(model_dir, exist_ok=True)
 
 # Save the model locally
-best_model.write().overwrite().save(local_model_path)
-print(f"Model saved locally at: {local_model_path}")
+local_model_save_path = os.path.join(local_model_path, "model")  # Save under "model" subdirectory
+shutil.rmtree(local_model_save_path, ignore_errors=True)  # Clear if already exists
+best_model.write().overwrite().save(local_model_save_path)
+print(f"Model saved locally at: {local_model_save_path}")
 
 # Upload the model to S3
-s3_client.upload_file(local_model_path, bucket_name, s3_model_path)
+for root, dirs, files in os.walk(local_model_save_path):
+    for file in files:
+        full_local_path = os.path.join(root, file)
+        relative_path = os.path.relpath(full_local_path, local_model_path)
+        s3_client.upload_file(full_local_path, bucket_name, f"{s3_model_path}/{relative_path}")
 print(f"Best model saved to S3 at: s3://{bucket_name}/{s3_model_path}")
 
 # Step 11: Stop Spark Session
