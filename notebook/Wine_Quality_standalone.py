@@ -1,108 +1,48 @@
 from pyspark.sql import SparkSession
+from pyspark.ml import Pipeline
 from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassifier
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from pyspark.ml.tuning import ParamGridBuilder, TrainValidationSplit
+from pyspark.ml.classification import RandomForestClassifier
 import boto3
 import os
-import shutil
 
 # Step 1: Initialize Spark Session
 spark = SparkSession.builder \
-    .appName("Wine_Quality_Single_Machine_Enhanced") \
+    .appName("Wine_Quality_Training") \
     .master("local[*]") \
     .getOrCreate()
 
-# Step 2: Load and Clean Data
-data = spark.read.csv("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv", 
-                      header=True, inferSchema=True, sep=";")
+# Step 2: Load Data
+data_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/TrainingDataset.csv"
+data = spark.read.csv(data_path, header=True, inferSchema=True, sep=";")
+data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Clean column names
 
-# Clean column names
-data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])
-
-# Verify 'quality' column exists
-if 'quality' not in data.columns:
-    raise ValueError("The dataset must contain a 'quality' column.")
-
-# Step 3: Train-Test Split
+# Step 3: Split Data
 train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
 
-# Step 4: Assemble Features
+# Step 4: Create Pipeline
 feature_cols = [col for col in train_data.columns if col != "quality"]
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
-train_data = assembler.transform(train_data).select("features", "quality")
-test_data = assembler.transform(test_data).select("features", "quality")
-
-# Step 5: Feature Scaling
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
-scaler_model = scaler.fit(train_data)
-train_data = scaler_model.transform(train_data).select("scaled_features", "quality").withColumnRenamed("scaled_features", "features")
-test_data = scaler_model.transform(test_data).select("scaled_features", "quality").withColumnRenamed("scaled_features", "features")
+rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
+pipeline = Pipeline(stages=[assembler, scaler, rf])
 
-# Step 6: Initialize Models
-rf = RandomForestClassifier(labelCol="quality", featuresCol="features", seed=42)
-dt = DecisionTreeClassifier(labelCol="quality", featuresCol="features", seed=42)
+# Step 5: Train Model
+pipeline_model = pipeline.fit(train_data)
 
-# Step 7: Hyperparameter Tuning for Random Forest
-paramGrid_rf = ParamGridBuilder() \
-    .addGrid(rf.numTrees, [10, 20, 30]) \
-    .addGrid(rf.maxDepth, [5, 10, 15]) \
-    .build()
+# Step 6: Save Model Locally
+model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models/PipelineModel"
+pipeline_model.write().overwrite().save(model_dir)
+print(f"Model saved locally at: {model_dir}")
 
-train_val_split = TrainValidationSplit(estimator=rf,
-                                       estimatorParamMaps=paramGrid_rf,
-                                       evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                                       trainRatio=0.8)
-
-# Train Random Forest
-rf_model = train_val_split.fit(train_data).bestModel
-
-# Train Decision Tree (without hyperparameter tuning for simplicity)
-dt_model = dt.fit(train_data)
-
-# Step 8: Evaluate Models
-evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
-
-rf_predictions = rf_model.transform(test_data)
-dt_predictions = dt_model.transform(test_data)
-
-rf_accuracy = evaluator.evaluate(rf_predictions)
-dt_accuracy = evaluator.evaluate(dt_predictions)
-
-print(f"Random Forest Accuracy: {rf_accuracy * 100:.2f}%")
-print(f"Decision Tree Accuracy: {dt_accuracy * 100:.2f}%")
-
-# Step 9: Select Best Model
-best_model = rf_model if rf_accuracy >= dt_accuracy else dt_model
-best_model_name = "RandomForest" if rf_accuracy >= dt_accuracy else "DecisionTree"
-print(f"Best Model: {best_model_name}")
-
-# Initialize S3 client
+# Step 7: Upload Model to S3
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
-
-# Define paths
-model_dir = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models"
-model_filename = f"{best_model_name}_model"
-local_model_path = os.path.join(model_dir, model_filename)  # Save in the models directory
-s3_model_path = f"Wine_models/{model_filename}"  # Path in S3
-
-# Ensure the local directory exists
-os.makedirs(model_dir, exist_ok=True)
-
-# Save the model locally
-local_model_save_path = os.path.join(local_model_path, "model")  # Save under "model" subdirectory
-shutil.rmtree(local_model_save_path, ignore_errors=True)  # Clear if already exists
-best_model.write().overwrite().save(local_model_save_path)
-print(f"Model saved locally at: {local_model_save_path}")
-
-# Upload the model to S3
-for root, dirs, files in os.walk(local_model_save_path):
+for root, dirs, files in os.walk(model_dir):
     for file in files:
-        full_local_path = os.path.join(root, file)
-        relative_path = os.path.relpath(full_local_path, local_model_path)
-        s3_client.upload_file(full_local_path, bucket_name, f"{s3_model_path}/{relative_path}")
-print(f"Best model saved to S3 at: s3://{bucket_name}/{s3_model_path}")
+        full_path = os.path.join(root, file)
+        s3_key = os.path.relpath(full_path, model_dir)  # Keep flat structure for S3
+        s3_client.upload_file(full_path, bucket_name, f"Wine_models/{s3_key}")
+print(f"Model uploaded to S3: s3://{bucket_name}/Wine_models/")
 
-# Step 11: Stop Spark Session
+# Stop Spark Session
 spark.stop()
