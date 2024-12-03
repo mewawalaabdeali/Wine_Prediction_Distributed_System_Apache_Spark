@@ -3,6 +3,7 @@ import os
 import sys
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 # Step 1: Capture Command-Line Arguments
 if len(sys.argv) != 3:
@@ -45,18 +46,34 @@ validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in
 
 # Step 6: Make Predictions
 predictions = pipeline_model.transform(validation_data)
-predictions.select("features", "quality", "prediction").show()
 
-# Step 7: Save Predictions Locally and Upload to S3
+# Step 7: Evaluate Model
+evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
+metrics = {
+    "Accuracy": evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"}),
+    "Precision": evaluator.evaluate(predictions, {evaluator.metricName: "weightedPrecision"}),
+    "Recall": evaluator.evaluate(predictions, {evaluator.metricName: "weightedRecall"}),
+    "F1 Score": evaluator.evaluate(predictions, {evaluator.metricName: "f1"}),
+}
+
+print("\nPrediction Evaluation Metrics:")
+for metric, value in metrics.items():
+    print(f"{metric}: {value:.4f}")
+
+# Step 8: Save Predictions Locally and Upload to S3
 predictions_output_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/WinePredictions.csv"
-predictions.select("features", "quality", "prediction") \
-    .write.csv(path=predictions_output_path, header=True, mode="overwrite")
+
+# Select only columns with simple types for saving
+predictions_to_save = predictions.select("quality", "prediction")
+
+# Save predictions as a single CSV locally
+predictions_to_save.write.csv(path=predictions_output_path, header=True, mode="overwrite")
 
 # Upload predictions to S3
 predictions_s3_key = "Wine_models/WinePredictions.csv"
 s3_client.upload_file(predictions_output_path, bucket_name, predictions_s3_key)
 print(f"Predictions uploaded to S3: s3://{bucket_name}/{predictions_s3_key}")
 
-# Stop Spark Session
+# Step 9: Stop Spark Session
 spark.stop()
 print("Spark session stopped.")
