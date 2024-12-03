@@ -47,7 +47,7 @@ print(f"Model loaded successfully from: {model_dir}")
 if validation_data_path.startswith("s3://"):
     # If validation file is in S3, download it
     s3_validation_bucket, s3_validation_key = validation_data_path[5:].split("/", 1)
-    local_validation_path = "/home/ubuntu/ValidationDataset.csv"
+    local_validation_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
     s3_client.download_file(s3_validation_bucket, s3_validation_key, local_validation_path)
     print(f"Validation file downloaded from S3: {validation_data_path}")
 else:
