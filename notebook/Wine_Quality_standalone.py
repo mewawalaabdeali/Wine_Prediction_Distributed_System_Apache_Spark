@@ -50,7 +50,18 @@ pipeline = Pipeline(stages=[assembler, scaler, crossval])
 pipeline_model = pipeline.fit(train_data)
 print("Model training completed with hyperparameter tuning.")
 
-# Step 8: Save Model Locally
+# Step 8: Evaluate Model on Test Data
+test_predictions = pipeline_model.transform(test_data)
+
+evaluator = MulticlassClassificationEvaluator(labelCol="quality")
+accuracy = evaluator.evaluate(test_predictions, {evaluator.metricName: "accuracy"})
+precision = evaluator.evaluate(test_predictions, {evaluator.metricName: "weightedPrecision"})
+recall = evaluator.evaluate(test_predictions, {evaluator.metricName: "weightedRecall"})
+f1_score = evaluator.evaluate(test_predictions, {evaluator.metricName: "f1"})
+
+print(f"Test Metrics: Accuracy = {accuracy:.4f}, Precision = {precision:.4f}, Recall = {recall:.4f}, F1 Score = {f1_score:.4f}")
+
+# Step 9: Save Model Locally
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 model_name = f"PipelineModel_{timestamp}"
 model_dir = f"/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_name}"
@@ -61,7 +72,7 @@ print(f"Model saved locally at: {model_dir}")
 # Print the model directory name for Jenkins
 print(f"MODEL_DIR={model_name}")  # This is the key line for Jenkins
 
-# Step 9: Upload Model to S3
+# Step 10: Upload Model to S3
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
 for root, dirs, files in os.walk(model_dir):
@@ -71,6 +82,6 @@ for root, dirs, files in os.walk(model_dir):
         s3_client.upload_file(full_path, bucket_name, f"Wine_models/{model_name}/{s3_key}")
 print(f"Model uploaded to S3: s3://{bucket_name}/Wine_models/{model_name}/")
 
-# Step 10: Stop Spark Session
+# Step 11: Stop Spark Session
 spark.stop()
 print("Spark session stopped.")
