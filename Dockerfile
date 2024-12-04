@@ -32,4 +32,4 @@ WORKDIR /app
 COPY . /app
 
 # Set entrypoint for running the prediction script via spark-submit
-ENTRYPOINT ["spark-submit", "--master", "local[*]", "/app/Wine_Prediction_Distributed_System_Apache_Spark/notebook/Wine_prediction_standalone.py"]
+ENTRYPOINT ["spark-submit", "--master", "local[*]", "/app/notebook/Wine_prediction_standalone.py"]
