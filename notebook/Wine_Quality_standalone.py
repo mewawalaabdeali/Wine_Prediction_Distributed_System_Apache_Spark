@@ -50,16 +50,25 @@ pipeline = Pipeline(stages=[assembler, scaler, crossval])
 pipeline_model = pipeline.fit(train_data)
 print("Model training completed with hyperparameter tuning.")
 
-# Step 8: Evaluate Model on Test Data
-test_predictions = pipeline_model.transform(test_data)
+# Step 8: Evaluate Model
+predictions = pipeline_model.transform(test_data)
+evaluator = MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy")
+accuracy = evaluator.evaluate(predictions)
 
-evaluator = MulticlassClassificationEvaluator(labelCol="quality")
-accuracy = evaluator.evaluate(test_predictions, {evaluator.metricName: "accuracy"})
-precision = evaluator.evaluate(test_predictions, {evaluator.metricName: "weightedPrecision"})
-recall = evaluator.evaluate(test_predictions, {evaluator.metricName: "weightedRecall"})
-f1_score = evaluator.evaluate(test_predictions, {evaluator.metricName: "f1"})
+precision_evaluator = MulticlassClassificationEvaluator(labelCol="quality", metricName="weightedPrecision")
+precision = precision_evaluator.evaluate(predictions)
 
-print(f"Test Metrics: Accuracy = {accuracy:.4f}, Precision = {precision:.4f}, Recall = {recall:.4f}, F1 Score = {f1_score:.4f}")
+recall_evaluator = MulticlassClassificationEvaluator(labelCol="quality", metricName="weightedRecall")
+recall = recall_evaluator.evaluate(predictions)
+
+f1_evaluator = MulticlassClassificationEvaluator(labelCol="quality", metricName="f1")
+f1_score = f1_evaluator.evaluate(predictions)
+
+print(f"Model Evaluation Metrics:")
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1 Score: {f1_score:.4f}")
 
 # Step 9: Save Model Locally
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
