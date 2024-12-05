@@ -77,7 +77,7 @@ pipeline {
                 echo "Running Docker container for validation job..."
                 sh """
                 ssh ${env.STANDALONE_HOST} "
-                sudo docker run --rm ${params.Docker_Image} ${params.Validation_url} ${env.MODEL_DIR} &&
+                sudo docker run --rm ${params.Docker_Image} ${params.VALIDATION_PATH} ${env.MODEL_DIR} &&
                 sudo docker image prune -a -f
                 "
                 """
