@@ -27,9 +27,9 @@ RUN wget https://archive.apache.org/dist/spark/spark-3.3.0/spark-3.3.0-bin-hadoo
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy project files
-WORKDIR /Wine_Prediction_Distributed_System_Apache_Spark
-COPY . /Wine_Prediction_Distributed_System_Apache_Spark
+# Copy only the prediction file
+WORKDIR /app
+COPY notebook/Wine_Quality_docker.py /app/
 
 # Set entrypoint for running the prediction script via spark-submit
-ENTRYPOINT ["spark-submit", "--master", "local[*]", "/Wine_Prediction_Distributed_System_Apache_Spark/notebook/Wine_Quality_docker.py"]
+ENTRYPOINT ["spark-submit", "--master", "local[*]", "/app/Wine_Quality_docker.py"]
