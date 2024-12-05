@@ -17,7 +17,7 @@ spark = SparkSession.builder \
 print("Spark session initialized in cluster mode.")
 
 # Step 2: Load and Clean Data
-data_path = "s3://winepredictionabdeali/TrainingDataset.csv"  # S3 path for training data
+data_path = "hdfs://172.31.1.208:9000/user/ubuntu/datasets/local_dataset.csv"  # S3 path for training data
 data = spark.read.csv(data_path, header=True, inferSchema=True, sep=";")
 data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Clean column names
 print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.columns)} columns.")
