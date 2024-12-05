@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wine-quality-prediction-{{BUILD_ID}}
+spec:
+  template:
+    spec:
+      containers:
+      - name: wine-predictor
+        image: {{DOCKER_IMAGE}}
+        args: ["{{VALIDATION_PATH}}", "{{MODEL_FOLDER}}"]
+      restartPolicy: Never
+  backoffLimit: 1
