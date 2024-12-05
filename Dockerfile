@@ -5,14 +5,15 @@ FROM python:3.8-slim
 ENV SPARK_HOME=/opt/spark
 ENV PATH=$PATH:$SPARK_HOME/bin
 
-# Set JAVA_HOME dynamically and install system dependencies including Java
+# Install system dependencies including the latest Java version
 RUN apt-get update && apt-get install -y \
     default-jdk wget curl \
-    && export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java)))) && \
-    echo "JAVA_HOME=$JAVA_HOME" >> /etc/environment && \
-    echo "PATH=$JAVA_HOME/bin:$PATH" >> /etc/environment && \
-    apt-get clean
+    && apt-get clean
 
+# Set JAVA_HOME dynamically
+RUN export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java)))) && \
+    echo "JAVA_HOME=$JAVA_HOME" >> /etc/environment && \
+    echo "PATH=$JAVA_HOME/bin:$PATH" >> /etc/environment
 ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH $JAVA_HOME/bin:$PATH
 
@@ -22,9 +23,12 @@ RUN wget https://archive.apache.org/dist/spark/spark-3.3.0/spark-3.3.0-bin-hadoo
     && mv /opt/spark-3.3.0-bin-hadoop3 /opt/spark \
     && rm spark-3.3.0-bin-hadoop3.tgz
 
-# Create working directory
+# Create necessary directories explicitly
 WORKDIR /Wine_Prediction_Distributed_System_Apache_Spark
-
+RUN mkdir -p /Wine_Prediction_Distributed_System_Apache_Spark/notebook \
+             /Wine_Prediction_Distributed_System_Apache_Spark/models \
+             /Wine_Prediction_Distributed_System_Apache_Spark/data 
+             
 # Copy only requirements.txt first to leverage Docker's layer caching for dependencies
 COPY requirements.txt /Wine_Prediction_Distributed_System_Apache_Spark/
 

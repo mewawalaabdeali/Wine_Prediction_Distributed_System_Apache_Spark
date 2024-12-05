@@ -44,7 +44,7 @@ if validation_data_path.startswith("s3://"):
     # If validation file is in S3, download it
     s3_client = boto3.client("s3")
     bucket_name, s3_key = validation_data_path[5:].split("/", 1)
-    local_validation_path = "/app/data/ValidationDataset.csv"
+    local_validation_path = "/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
     s3_client.download_file(bucket_name, s3_key, local_validation_path)
     print(f"Validation file downloaded from S3: {validation_data_path}")
 else:
