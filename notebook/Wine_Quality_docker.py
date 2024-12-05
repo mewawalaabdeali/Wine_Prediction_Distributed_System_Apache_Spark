@@ -22,7 +22,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 3: Set Up Model Directory
-model_dir = os.path.join("/app/models", model_folder_name)  # Model directory inside the container
+model_dir = os.path.join("/Wine_Prediction_Distributed_System_Apache_Spark/models", model_folder_name)  # Model directory inside the container
 
 # Validate model directory
 if not os.path.exists(model_dir):

@@ -28,8 +28,8 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy project files
-WORKDIR /app
-COPY . /app
+WORKDIR /Wine_Prediction_Distributed_System_Apache_Spark
+COPY . /Wine_Prediction_Distributed_System_Apache_Spark
 
 # Set entrypoint for running the prediction script via spark-submit
 ENTRYPOINT ["spark-submit", "--master", "local[*]", "/app/notebook/Wine_Quality_docker.py"]
