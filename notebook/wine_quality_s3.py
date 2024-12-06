@@ -13,13 +13,18 @@ import shutil
 import boto3
 
 # Step 1: Initialize Spark Session for Cluster Mode
+#spark = SparkSession.builder \
+#    .appName("Wine_Quality_Training_Distributed") \
+#   .config("spark.jars.packages", "org.apache.spark:spark-hadoop-cloud_2.12:3.3.0") \
+#    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+#    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
+#    .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+#    .getOrCreate()
+
 spark = SparkSession.builder \
-    .appName("Wine_Quality_Training_Distributed") \
-    .config("spark.jars.packages", "org.apache.spark:spark-hadoop-cloud_2.12:3.3.0") \
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
-    .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-    .getOrCreate()
+    .appName("WineQualityPrediction") \
+    .config("spark.driver.memory", "2").getOrCreate()
+
 
 print("Spark session initialized in cluster mode.")
 
