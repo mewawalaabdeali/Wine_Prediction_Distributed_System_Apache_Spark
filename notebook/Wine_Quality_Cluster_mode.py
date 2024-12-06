@@ -12,6 +12,8 @@ import boto3
 # Step 1: Initialize Spark Session for Cluster Mode
 spark = SparkSession.builder \
     .appName("Wine_Quality_Training_Distributed") \
+    .config("spark.jars.packages", "org.apache.spark:spark-hadoop-cloud_2.12:3.3.0")\
+    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")\
     .getOrCreate()
 
 print("Spark session initialized in cluster mode.")
