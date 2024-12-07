@@ -44,7 +44,7 @@ paramGrid = ParamGridBuilder() \
 crossval = CrossValidator(estimator=rf,
                           estimatorParamMaps=paramGrid,
                           evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                          numFolds=3)  # Reduced folds
+                          numFolds=3)
 
 # Step 6: Create Pipeline
 pipeline = Pipeline(stages=[assembler, scaler, crossval])
@@ -54,33 +54,32 @@ print("Starting model training with hyperparameter tuning...")
 pipeline_model = pipeline.fit(train_data)
 print("Model training completed with hyperparameter tuning.")
 
-# Step 8: Save Model to S3 with Timestamp-Based Folder
-# Generate a unique timestamp-based folder
+# Step 8: Save Model to S3
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 model_name = f"RandomForest_{timestamp}"
-local_model_dir = f"/tmp/{model_name}"  # Temporary local storage for model
+local_model_dir = f"/tmp/{model_name}"
+s3_bucket = "winepredictionabdeali"
+s3_path = f"Testing_models/{model_name}/"
 
-# Debugging log: Check local path creation
-print(f"Creating local model directory at: {local_model_dir}")
-shutil.rmtree(local_model_dir, ignore_errors=True)  # Clear existing directory if needed
+# Clear and save model locally
+shutil.rmtree(local_model_dir, ignore_errors=True)
+print(f"Saving model locally at: {local_model_dir}")
 pipeline_model.write().overwrite().save(local_model_dir)
-print(f"Model saved locally at: {local_model_dir}")
 
-# Upload the model directory to S3
-bucket_name = "winepredictionabdeali"
-s3_path = f"Testing_models/{model_name}"
-s3_client = boto3.client('s3')
-
+# Upload model to S3
+print("Uploading model to S3...")
+s3_client = boto3.client("s3")
 try:
     for root, dirs, files in os.walk(local_model_dir):
         for file in files:
             full_path = os.path.join(root, file)
-            s3_key = f"{s3_path}/{os.path.relpath(full_path, local_model_dir)}"
-            print(f"Uploading {full_path} to s3://{bucket_name}/{s3_key}")
-            s3_client.upload_file(full_path, bucket_name, s3_key)
-    print(f"Model uploaded to S3 successfully: s3://{bucket_name}/{s3_path}/")
+            relative_path = os.path.relpath(full_path, local_model_dir)
+            s3_key = os.path.join(s3_path, relative_path).replace("\\", "/")
+            print(f"Uploading {full_path} to s3://{s3_bucket}/{s3_key}")
+            s3_client.upload_file(full_path, s3_bucket, s3_key)
+    print(f"Model successfully uploaded to s3://{s3_bucket}/{s3_path}")
 except Exception as e:
-    print(f"Error during model save or upload: {e}")
+    print(f"Error uploading model to S3: {e}")
 
 # Step 9: Evaluate Model
 print("Starting model evaluation...")
