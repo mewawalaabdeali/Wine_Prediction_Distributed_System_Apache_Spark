@@ -12,6 +12,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 import boto3
 import os
+import sys
+from urllib.parse import urlparse
 
 
 def main():
@@ -28,7 +30,7 @@ def main():
     print(">>>> Importing: " + trainPath)
 
     # Model Path Creation
-    s3ModelPath = "s3a://winepredictionabdeali/models"
+    s3ModelPath = "s3a://winepredictionabdeali/Testing_models"
     print(">>>> Model Path set: " + s3ModelPath)
 
     # Importing Training CSV
