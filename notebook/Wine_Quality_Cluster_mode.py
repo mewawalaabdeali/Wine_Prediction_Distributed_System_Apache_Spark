@@ -31,22 +31,26 @@ feature_cols = [col for col in train_data.columns if col != "quality"]
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
-# Step 5: Model and Hyperparameter Tuning
+# Step 5: Model and Hyperparameter Tuning (Optimized)
 rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
+
+# Optimized parameter grid
 paramGrid = ParamGridBuilder() \
-    .addGrid(rf.numTrees, [10, 50, 100]) \
-    .addGrid(rf.maxDepth, [5, 10, 20]) \
+    .addGrid(rf.numTrees, [10, 50]) \
+    .addGrid(rf.maxDepth, [5, 10]) \
     .build()
 
+# Reduced cross-validation folds for faster processing
 crossval = CrossValidator(estimator=rf,
                           estimatorParamMaps=paramGrid,
                           evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                          numFolds=5)  # 5-fold cross-validation
+                          numFolds=3)  # Reduced folds
 
 # Step 6: Create Pipeline
 pipeline = Pipeline(stages=[assembler, scaler, crossval])
 
 # Step 7: Train Model
+print("Starting model training with hyperparameter tuning...")
 pipeline_model = pipeline.fit(train_data)
 print("Model training completed with hyperparameter tuning.")
 
@@ -72,6 +76,7 @@ print(f"Model uploaded to S3: s3://{bucket_name}/Wine_models/{model_name}/")
 print(f"MODEL_NAME={model_name}")
 
 # Step 9: Evaluate Model
+print("Starting model evaluation...")
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
 train_prediction = pipeline_model.transform(train_data)
 test_prediction = pipeline_model.transform(test_data)
