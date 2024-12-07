@@ -59,6 +59,9 @@ print("Model training completed with hyperparameter tuning.")
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 model_name = f"RandomForest_{timestamp}"
 local_model_dir = f"/tmp/{model_name}"  # Temporary local storage for model
+
+# Debugging log: Check local path creation
+print(f"Creating local model directory at: {local_model_dir}")
 shutil.rmtree(local_model_dir, ignore_errors=True)  # Clear existing directory if needed
 pipeline_model.write().overwrite().save(local_model_dir)
 print(f"Model saved locally at: {local_model_dir}")
@@ -72,9 +75,10 @@ try:
     for root, dirs, files in os.walk(local_model_dir):
         for file in files:
             full_path = os.path.join(root, file)
-            s3_key = os.path.relpath(full_path, local_model_dir)
-            s3_client.upload_file(full_path, bucket_name, f"{s3_path}/{s3_key}")
-    print(f"Model uploaded to S3: s3://{bucket_name}/{s3_path}/")
+            s3_key = f"{s3_path}/{os.path.relpath(full_path, local_model_dir)}"
+            print(f"Uploading {full_path} to s3://{bucket_name}/{s3_key}")
+            s3_client.upload_file(full_path, bucket_name, s3_key)
+    print(f"Model uploaded to S3 successfully: s3://{bucket_name}/{s3_path}/")
 except Exception as e:
     print(f"Error during model save or upload: {e}")
 
