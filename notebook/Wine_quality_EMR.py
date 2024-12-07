@@ -58,13 +58,43 @@ print("Model training completed with hyperparameter tuning.")
 # Step 8: Evaluate Model
 print("Starting model evaluation...")
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
+
+# Evaluate on train and test data
+train_prediction = pipeline_model.transform(train_data)
 test_prediction = pipeline_model.transform(test_data)
 
 # Calculate Evaluation Metrics
+train_f1 = evaluator.evaluate(train_prediction, {evaluator.metricName: "f1"})
+test_f1 = evaluator.evaluate(test_prediction, {evaluator.metricName: "f1"})
+train_accuracy = evaluator.evaluate(train_prediction, {evaluator.metricName: "accuracy"})
 test_accuracy = evaluator.evaluate(test_prediction, {evaluator.metricName: "accuracy"})
-print(f"Test Accuracy: {test_accuracy:.4f}")
 
-# Step 9: Save Model to S3 with Unique Naming
+# Enhanced Metrics Output
+print("\n")
+print("***********************************************************************")
+print("+++++++++++++++++++++++ Model Evaluation Metrics ++++++++++++++++++++++")
+print("***********************************************************************")
+print(f"[Train] F1 Score      : {train_f1:.4f}")
+print(f"[Train] Accuracy      : {train_accuracy:.4f}")
+print("-----------------------------------------------------------------------")
+print(f"[Test]  F1 Score      : {test_f1:.4f}")
+print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
+print("***********************************************************************")
+
+# Save hyperparameters and evaluation metrics to a JSON file
+metadata = {
+    "train_f1": train_f1,
+    "test_f1": test_f1,
+    "train_accuracy": train_accuracy,
+    "test_accuracy": test_accuracy,
+    "paramGrid": {"numTrees": [10, 50], "maxDepth": [5, 10]},
+}
+metadata_file = "/tmp/metadata.json"
+with open(metadata_file, "w") as f:
+    json.dump(metadata, f)
+print(f"Metadata saved locally at: {metadata_file}")
+
+# Step 9: Save Model and Parameters to S3
 # Generate a unique hash for the model based on parameters and test accuracy
 param_str = json.dumps({"numTrees": [10, 50], "maxDepth": [5, 10]}, sort_keys=True)
 model_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]  # Generate a short hash
@@ -79,16 +109,23 @@ if os.path.exists(local_model_dir):
 pipeline_model.write().save(local_model_dir)
 print(f"Model saved locally at: {local_model_dir}")
 
-# Upload the model directory to S3 without overwriting
+# Upload the model directory to S3
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
 s3_path = f"Testing_models/{model_name}"  # Updated S3 directory
-for root, dirs, files in os.walk(local_model_dir):
-    for file in files:
-        full_path = os.path.join(root, file)
-        s3_key = os.path.relpath(full_path, local_model_dir)
-        s3_client.upload_file(full_path, bucket_name, f"{s3_path}/{s3_key}")
-print(f"Model uploaded to S3: s3://{bucket_name}/{s3_path}/")
+
+print(f"Uploading model files to S3 path: s3://{bucket_name}/{s3_path}/")
+try:
+    for root, dirs, files in os.walk(local_model_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            relative_path = os.path.relpath(full_path, local_model_dir)
+            s3_key = f"{s3_path}/{relative_path}"  # Full S3 key
+            print(f"Uploading {full_path} to s3://{bucket_name}/{s3_key}")
+            s3_client.upload_file(full_path, bucket_name, s3_key)
+    print(f"Model successfully uploaded to S3: s3://{bucket_name}/{s3_path}/")
+except Exception as e:
+    print(f"Error uploading model to S3: {e}")
 
 # Print the model name for Jenkins
 print(f"MODEL_NAME={model_name}")
