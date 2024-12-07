@@ -55,52 +55,43 @@ print("Starting model training with hyperparameter tuning...")
 pipeline_model = pipeline.fit(train_data)
 print("Model training completed with hyperparameter tuning.")
 
-# Step 8: Save Model to S3 with Custom Logic
-# Generate a unique hash for the model based on parameters
+# Step 8: Evaluate Model
+print("Starting model evaluation...")
+evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
+test_prediction = pipeline_model.transform(test_data)
+
+# Calculate Evaluation Metrics
+test_accuracy = evaluator.evaluate(test_prediction, {evaluator.metricName: "accuracy"})
+print(f"Test Accuracy: {test_accuracy:.4f}")
+
+# Step 9: Save Model to S3 with Unique Naming
+# Generate a unique hash for the model based on parameters and test accuracy
 param_str = json.dumps({"numTrees": [10, 50], "maxDepth": [5, 10]}, sort_keys=True)
 model_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]  # Generate a short hash
-model_name = f"RandomForest_{model_hash}"
+model_name = f"RandomForest_Acc{int(test_accuracy*100)}_{model_hash}"  # Use test accuracy and hash
 local_model_dir = f"/tmp/{model_name}"  # Temporary local storage for model
-shutil.rmtree(local_model_dir, ignore_errors=True)  # Clear existing directory
-pipeline_model.write().overwrite().save(local_model_dir)
+
+# Remove local directory if it exists to avoid conflicts
+if os.path.exists(local_model_dir):
+    shutil.rmtree(local_model_dir)
+
+# Save the model locally
+pipeline_model.write().save(local_model_dir)
 print(f"Model saved locally at: {local_model_dir}")
 
-# Upload the model directory to S3
+# Upload the model directory to S3 without overwriting
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
+s3_path = f"Testing_models/{model_name}"  # Updated S3 directory
 for root, dirs, files in os.walk(local_model_dir):
     for file in files:
         full_path = os.path.join(root, file)
         s3_key = os.path.relpath(full_path, local_model_dir)
-        s3_client.upload_file(full_path, bucket_name, f"Wine_models/{model_name}/{s3_key}")
-print(f"Model uploaded to S3: s3://{bucket_name}/Wine_models/{model_name}/")
+        s3_client.upload_file(full_path, bucket_name, f"{s3_path}/{s3_key}")
+print(f"Model uploaded to S3: s3://{bucket_name}/{s3_path}/")
 
 # Print the model name for Jenkins
 print(f"MODEL_NAME={model_name}")
-
-# Step 9: Evaluate Model
-print("Starting model evaluation...")
-evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
-train_prediction = pipeline_model.transform(train_data)
-test_prediction = pipeline_model.transform(test_data)
-
-# Calculate Evaluation Metrics
-train_f1 = evaluator.evaluate(train_prediction, {evaluator.metricName: "f1"})
-test_f1 = evaluator.evaluate(test_prediction, {evaluator.metricName: "f1"})
-train_accuracy = evaluator.evaluate(train_prediction, {evaluator.metricName: "accuracy"})
-test_accuracy = evaluator.evaluate(test_prediction, {evaluator.metricName: "accuracy"})
-
-# Enhanced Metrics Output
-print("\n")
-print("***********************************************************************")
-print("+++++++++++++++++++++++ Model Evaluation Metrics ++++++++++++++++++++++")
-print("***********************************************************************")
-print(f"[Train] F1 Score      : {train_f1:.4f}")
-print(f"[Train] Accuracy      : {train_accuracy:.4f}")
-print("-----------------------------------------------------------------------")
-print(f"[Test]  F1 Score      : {test_f1:.4f}")
-print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
-print("***********************************************************************")
 
 # Step 10: Stop Spark Session
 spark.stop()
