@@ -90,9 +90,12 @@ metadata = {
     "paramGrid": {"numTrees": [10, 50], "maxDepth": [5, 10]},
 }
 metadata_file = "/tmp/metadata.json"
-with open(metadata_file, "w") as f:
-    json.dump(metadata, f)
-print(f"Metadata saved locally at: {metadata_file}")
+try:
+    with open(metadata_file, "w") as f:
+        json.dump(metadata, f)
+    print(f"Metadata saved locally at: {metadata_file}")
+except Exception as e:
+    print(f"Error saving metadata locally: {e}")
 
 # Step 9: Save Model and Parameters to S3
 # Generate a unique hash for the model based on parameters and test accuracy
@@ -106,8 +109,11 @@ if os.path.exists(local_model_dir):
     shutil.rmtree(local_model_dir)
 
 # Save the model locally
-pipeline_model.write().save(local_model_dir)
-print(f"Model saved locally at: {local_model_dir}")
+try:
+    pipeline_model.write().save(local_model_dir)
+    print(f"Model successfully saved locally at: {local_model_dir}")
+except Exception as e:
+    print(f"Error saving model locally: {e}")
 
 # Upload the model directory to S3
 s3_client = boto3.client('s3')
@@ -125,7 +131,7 @@ try:
             s3_client.upload_file(full_path, bucket_name, s3_key)
     print(f"Model successfully uploaded to S3: s3://{bucket_name}/{s3_path}/")
 except Exception as e:
-    print(f"Error uploading model to S3: {e}")
+    print(f"Error during S3 upload: {e}")
 
 # Print the model name for Jenkins
 print(f"MODEL_NAME={model_name}")
