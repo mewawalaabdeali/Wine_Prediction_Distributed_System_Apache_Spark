@@ -1,26 +1,31 @@
-from pyspark.sql import SparkSession
+# Importing findspark and setting up Spark
+import findspark
+findspark.find()
+findspark.init()
+
+from datetime import datetime
+from pyspark import SparkConf, SparkContext
 from pyspark.ml import Pipeline
-from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
-from datetime import datetime
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 import os
 import shutil
 import boto3
 
 # Step 1: Initialize Spark Session for Cluster Mode
-spark = SparkSession.builder \
-    .appName("Wine_Quality_Training_Distributed") \
-    .config("spark.jars.packages", "org.apache.spark:spark-hadoop-cloud_2.12:3.3.0")\
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-    .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
-    .getOrCreate()
+conf = SparkConf().setAppName('Wine_Quality_Training')
+spark = SparkSession.builder.config(conf=conf).getOrCreate()
+sc = spark.sparkContext
+sc.setLogLevel("ERROR")
 
 print("Spark session initialized in cluster mode.")
 
-# Step 2: Load and Clean Data from S3
-data_path = "s3://winepredictionabdeali/TrainingDataset.csv"  # S3 path for training data
+# Step 2: Load and Clean Data
+data_path = "s3a://winepredictionabdeali/TrainingDataset.csv"  # S3 path for training data
 data = spark.read.csv(data_path, header=True, inferSchema=True, sep=";")
 data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Clean column names
 print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.columns)} columns.")
@@ -55,13 +60,20 @@ print("Model training completed with hyperparameter tuning.")
 # Step 8: Save Model to S3
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 model_name = f"PipelineModel_{timestamp}"
+local_model_dir = f"/tmp/{model_name}"  # Temporary local storage for model
+shutil.rmtree(local_model_dir, ignore_errors=True)  # Clear existing directory
+pipeline_model.write().overwrite().save(local_model_dir)
+print(f"Model saved locally at: {local_model_dir}")
 
-# Set the model save path to S3
-s3_model_path = f"s3://winepredictionabdeali/Wine_models/{model_name}/"
-
-# Save the model to the S3 path
-pipeline_model.write().overwrite().save(s3_model_path)
-print(f"Model saved to S3 at: {s3_model_path}")
+# Upload the model directory to S3
+s3_client = boto3.client('s3')
+bucket_name = "winepredictionabdeali"
+for root, dirs, files in os.walk(local_model_dir):
+    for file in files:
+        full_path = os.path.join(root, file)
+        s3_key = os.path.relpath(full_path, local_model_dir)
+        s3_client.upload_file(full_path, bucket_name, f"Wine_models/{model_name}/{s3_key}")
+print(f"Model uploaded to S3: s3://{bucket_name}/Wine_models/{model_name}/")
 
 # Print the model name for Jenkins
 print(f"MODEL_NAME={model_name}")
