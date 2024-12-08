@@ -19,7 +19,7 @@ model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "Pipeli
 # Step 2: Initialize Spark Session (Local for one machine)
 spark = SparkSession.builder \
     .appName("Wine_Quality_Prediction") \
-    .master("local[*]") \
+    .master("local[*]") \  # Explicitly set master to local
     .getOrCreate()
 
 print("Spark session initialized in local mode.")
@@ -27,7 +27,7 @@ print("Spark session initialized in local mode.")
 # Step 3: S3 Configuration
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdealicanvas"  # The bucket to store the models
-model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model local directory
+model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Local model directory
 
 # Step 4: Download Model from S3 (if not already downloaded)
 if not os.path.exists(model_dir):
@@ -42,8 +42,7 @@ if not os.path.exists(model_dir):
 else:
     print(f"Model found locally at: {model_dir}")
 
-# Step 5: Load Model
-# Fix the model directory loading to be accurate
+# Step 5: Load Model (Local mode will handle this)
 pipeline_model = PipelineModel.load(model_dir)  # Ensure this points to the correct local model directory
 print(f"Model loaded successfully from: {model_dir}")
 
