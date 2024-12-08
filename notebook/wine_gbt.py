@@ -24,6 +24,7 @@ data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Cle
 print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.columns)} columns.")
 
 # Step 3: Handle Imbalanced Data by Adding Weights for Each Class
+# Calculate class frequencies
 class_weights = data.groupBy("quality").count().withColumnRenamed("count", "class_count")
 
 # Get the total number of samples in the dataset
@@ -33,8 +34,11 @@ total_count = data.count()
 weight_df = class_weights.withColumn("weight", when(col("quality") == 5, total_count / (class_weights["class_count"] * 2))
                                                 .otherwise(total_count / class_weights["class_count"]))
 
-# Broadcast the weight table to join with training data
-weight_df_broadcast = spark.sparkContext.broadcast(weight_df.collectAsMap())
+# Collect the weight_df into a list of rows and convert it into a dictionary
+weight_dict = {row['quality']: row['weight'] for row in weight_df.collect()}
+
+# Broadcast the weight dictionary
+weight_df_broadcast = spark.sparkContext.broadcast(weight_dict)
 
 # Add weight column to the dataset based on the class label
 data = data.withColumn("weight", when(col("quality").isNotNull(), 
