@@ -1,5 +1,6 @@
 import boto3
 import os
+import sys
 from pyspark.sql import SparkSession
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import VectorAssembler, StandardScaler
@@ -42,11 +43,11 @@ dt = DecisionTreeClassifier(labelCol="quality", featuresCol="scaled_features", s
 # GradientBoosting Classifier
 gbt = GBTClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
 
-# Parameter Grid for RandomForest
+# Parameter Grid for RandomForest (corrected minInstancesPerNode)
 paramGrid_rf = ParamGridBuilder() \
     .addGrid(rf.numTrees, [10, 50, 100]) \
     .addGrid(rf.maxDepth, [5, 10, 15]) \
-    .addGrid(rf.minSamplesLeaf, [1, 2, 4]) \
+    .addGrid(rf.minInstancesPerNode, [1, 2, 4]) \  # Corrected parameter name
     .addGrid(rf.impurity, ['gini', 'entropy']) \
     .build()
 
