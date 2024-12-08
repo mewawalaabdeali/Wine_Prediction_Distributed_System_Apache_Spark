@@ -4,6 +4,7 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.ml.feature import VectorAssembler, StandardScaler  # Add this import
 from io import StringIO
 import pandas as pd
 from pyspark.sql.functions import col
