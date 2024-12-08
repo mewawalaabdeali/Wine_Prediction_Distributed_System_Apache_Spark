@@ -36,10 +36,10 @@ COPY requirements.txt /Wine_Prediction_Distributed_System_Apache_Spark/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy Python scripts and notebooks
-COPY notebook/Wine_Quality_docker.py /Wine_Prediction_Distributed_System_Apache_Spark/notebook/
+COPY notebook/wine_prediction_final_testing.py /Wine_Prediction_Distributed_System_Apache_Spark/notebook/
 
 # Copy the models directory
 COPY models /Wine_Prediction_Distributed_System_Apache_Spark/models/
 
 # Set entrypoint for running the prediction script via spark-submit
-ENTRYPOINT ["spark-submit", "--master", "local[*]", "/Wine_Prediction_Distributed_System_Apache_Spark/notebook/Wine_Quality_docker.py"]
+ENTRYPOINT ["spark-submit", "--master", "local[*]", "/Wine_Prediction_Distributed_System_Apache_Spark/notebook/wine_prediction_final_testing.py"]
