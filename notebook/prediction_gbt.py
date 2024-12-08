@@ -80,6 +80,7 @@ validation_data = spark.read.csv(local_validation_path, header=True, inferSchema
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
 # Step 7: Ensure No Duplicate 'features' Column
+# If the 'features' column exists, drop it before applying VectorAssembler
 if 'features' in validation_data.columns:
     validation_data = validation_data.drop('features')  # Drop existing 'features' column if it exists
 
