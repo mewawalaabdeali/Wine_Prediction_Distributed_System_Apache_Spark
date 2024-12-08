@@ -1,13 +1,13 @@
+import boto3
+import os
+import shutil
 from pyspark.sql import SparkSession
 from pyspark.ml import Pipeline
-from pyspark.ml.feature import VectorAssembler, StandardScaler, OneHotEncoder, StringIndexer
+from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from datetime import datetime
-import os
-import shutil
-import boto3
 from pyspark.sql.functions import col
 
 # Step 1: Initialize Spark Session for Cluster Mode
@@ -27,16 +27,12 @@ print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.colu
 # Step 3: Train-Test Split
 train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
 
-# Step 4: Feature Engineering with OneHot Encoding
-# Assuming the "quality" column is the target, so we exclude it from the features
+# Step 4: Feature Engineering
+# Assuming all columns are numerical except "quality"
 feature_cols = [col for col in train_data.columns if col != "quality"]
 
-# OneHot Encoding for categorical features (if there are any categorical columns)
-categorical_cols = ["column_name_here"]  # Replace with actual categorical column names
-indexers = [StringIndexer(inputCol=col, outputCol=f"{col}_index") for col in categorical_cols]
-encoders = [OneHotEncoder(inputCol=f"{col}_index", outputCol=f"{col}_onehot") for col in categorical_cols]
-
-assembler = VectorAssembler(inputCols=feature_cols + [f"{col}_onehot" for col in categorical_cols], outputCol="features")
+# VectorAssembler and StandardScaler
+assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
 # Step 5: Model and Hyperparameter Tuning (Optimized)
@@ -46,16 +42,17 @@ rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", s
 paramGrid = ParamGridBuilder() \
     .addGrid(rf.numTrees, [10, 50]) \
     .addGrid(rf.maxDepth, [5, 10]) \
+    .addGrid(rf.maxBins, [32, 64]) \
     .build()
 
 # Reduced cross-validation folds for faster processing
 crossval = CrossValidator(estimator=rf,
                           estimatorParamMaps=paramGrid,
                           evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                          numFolds=3)  # Reduced folds
+                          numFolds=3)  # Reduced folds for faster processing
 
 # Step 6: Create Pipeline
-pipeline = Pipeline(stages=indexers + encoders + [assembler, scaler, crossval])
+pipeline = Pipeline(stages=[assembler, scaler, crossval])
 
 # Step 7: Train Model
 print("Starting model training with hyperparameter tuning...")

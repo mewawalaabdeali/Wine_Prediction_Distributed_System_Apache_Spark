@@ -6,6 +6,7 @@ from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from io import StringIO
 import pandas as pd
+from pyspark.sql.functions import col
 
 # Step 1: Capture Command-Line Arguments
 if len(sys.argv) != 3:
@@ -25,14 +26,14 @@ print("Spark session initialized.")
 
 # Step 3: S3 Configuration
 s3_client = boto3.client('s3')
-bucket_name = "winepredictionabdeali"  # The bucket to store the models
+bucket_name = "winepredictionabdealicanvas"  # The bucket to store the models
 model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model local directory
 
 # Step 4: Download Model from S3
 if not os.path.exists(model_dir):
-    print(f"Downloading model from S3: s3://{bucket_name}/Wine_models/{model_folder_name}/")
+    print(f"Downloading model from S3: s3://{bucket_name}/winemodels/{model_folder_name}/")
     os.makedirs(model_dir, exist_ok=True)
-    s3_prefix = f"Wine_models/{model_folder_name}"
+    s3_prefix = f"winemodels/{model_folder_name}"
     for obj in s3_client.list_objects(Bucket=bucket_name, Prefix=s3_prefix).get('Contents', []):
         s3_key = obj['Key']
         local_path = os.path.join(model_dir, os.path.basename(s3_key))
@@ -85,7 +86,7 @@ for metric, value in metrics.items():
 predictions_df = predictions.select("quality", "prediction").toPandas()
 
 # Save predictions to S3
-predictions_s3_key = "Wine_models/WinePredictions.csv"
+predictions_s3_key = "winemodels/WinePredictions.csv"
 csv_buffer = StringIO()
 predictions_df.to_csv(csv_buffer, index=False)
 s3_client.put_object(Bucket=bucket_name, Key=predictions_s3_key, Body=csv_buffer.getvalue())
