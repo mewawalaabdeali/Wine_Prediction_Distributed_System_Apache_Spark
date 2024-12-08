@@ -24,41 +24,47 @@ spark = SparkSession.builder \
 
 print("Spark session initialized in local mode.")
 
-# Step 3: S3 Configuration
+# Step 3: Set Up Model Directory
+model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Local model directory
+
+# Step 4: Download Model from S3 if not found locally
 s3_client = boto3.client('s3')
-bucket_name = "winepredictionabdealicanvas"  # The bucket to store the models
-model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model local directory
+bucket_name = "winepredictionabdealicanvas"  # Replace with your S3 bucket name
+s3_model_path = f"Wine_models/{model_folder_name}"
 
-# Step 4: Download Model from S3 (if not already downloaded)
+# Check if the model exists locally
 if not os.path.exists(model_dir):
-    print(f"Downloading model from S3: s3://{bucket_name}/Wine_models/{model_folder_name}/")
-    os.makedirs(model_dir, exist_ok=True)
-    s3_prefix = f"Wine_models/{model_folder_name}"
-
-    # List all files in the model directory on S3, including subfolders
-    s3_objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=s3_prefix)
+    print(f"Model not found locally. Attempting to download from S3: s3://{bucket_name}/{s3_model_path}/")
     
-    # Check if there are objects in the folder
-    if 'Contents' in s3_objects:
-        for obj in s3_objects['Contents']:
-            s3_key = obj['Key']
-            local_path = os.path.join(model_dir, os.path.relpath(s3_key, s3_prefix))  # Correct the local path structure
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)  # Ensure the folder structure is created
-            
-            # Download the file
-            s3_client.download_file(bucket_name, s3_key, local_path)
-            print(f"Downloaded: {s3_key} to {local_path}")
-    else:
-        print(f"Error: No files found in the model folder {s3_prefix} on S3")
+    # List the contents of the S3 model folder
+    try:
+        s3_objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=s3_model_path)
+        if 'Contents' in s3_objects:
+            # Create the model directory if it doesn't exist
+            os.makedirs(model_dir, exist_ok=True)
+            # Download the model from S3
+            for obj in s3_objects['Contents']:
+                s3_key = obj['Key']
+                local_path = os.path.join(model_dir, os.path.relpath(s3_key, s3_model_path))
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                s3_client.download_file(bucket_name, s3_key, local_path)
+            print(f"Model downloaded to: {model_dir}")
+        else:
+            print(f"No model found in S3 at s3://{bucket_name}/{s3_model_path}/")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error downloading model from S3: {e}")
         sys.exit(1)
-    
-    print(f"Model downloaded to: {model_dir}")
 else:
     print(f"Model found locally at: {model_dir}")
 
-# Step 5: Load Model
-pipeline_model = PipelineModel.load(model_dir)
-print(f"Model loaded successfully from: {model_dir}")
+# Step 5: Load the Model
+try:
+    pipeline_model = PipelineModel.load(model_dir)
+    print(f"Model loaded successfully from: {model_dir}")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    sys.exit(1)
 
 # Step 6: Handle Validation File
 if validation_data_path.startswith("s3://"):
