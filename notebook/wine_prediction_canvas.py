@@ -43,7 +43,7 @@ else:
     print(f"Model found locally at: {model_dir}")
 
 # Step 5: Load Model
-pipeline_model = PipelineModel.load(model_dir)
+pipeline_model = PipelineModel.load(model_dir)  # Ensure the model path is correct
 print(f"Model loaded successfully from: {model_dir}")
 
 # Step 6: Handle Validation File
