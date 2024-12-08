@@ -6,8 +6,7 @@ from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from io import StringIO
 import pandas as pd
-from pyspark.sql.functions import col, lit
-from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.sql.functions import col
 
 # Step 1: Capture Command-Line Arguments
 if len(sys.argv) != 3:
@@ -20,6 +19,7 @@ model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "Pipeli
 # Step 2: Initialize Spark Session
 spark = SparkSession.builder \
     .appName("Wine_Quality_Prediction") \
+    .master("local[*]") \
     .getOrCreate()
 
 # Step 3: Set Up Model Directory
@@ -78,14 +78,15 @@ else:
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
-# Step 7: Feature Engineering (same as training)
-feature_cols = [col for col in validation_data.columns if col != "quality" and col != "weight"]
+# Step 7: Ensure no conflict with existing 'scaled_features' column
+if 'scaled_features' in validation_data.columns:
+    validation_data = validation_data.drop('scaled_features')
 
-# Assemble the features with a different output column name to avoid conflict
-assembler = VectorAssembler(inputCols=feature_cols, outputCol="new_features")
-scaler = StandardScaler(inputCol="new_features", outputCol="scaled_features", withStd=True, withMean=False)
+# Apply feature scaling (same as during training)
+assembler = VectorAssembler(inputCols=[col for col in validation_data.columns if col != "quality"], outputCol="features")
+scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
-# Apply feature assembly and scaling
+# Apply feature transformation pipeline to validation data
 validation_data = assembler.transform(validation_data)
 validation_data = scaler.fit(validation_data).transform(validation_data)
 
