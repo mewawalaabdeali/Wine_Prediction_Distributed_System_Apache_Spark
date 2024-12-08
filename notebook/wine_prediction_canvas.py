@@ -16,24 +16,24 @@ if len(sys.argv) != 3:
 validation_data_path = sys.argv[1]  # Validation dataset path (local or S3)
 model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "PipelineModel_20241203152045")
 
-# Step 2: Initialize Spark Session
+# Step 2: Initialize Spark Session (Local for one machine)
 spark = SparkSession.builder \
     .appName("Wine_Quality_Prediction") \
     .master("local[*]") \
     .getOrCreate()
 
-print("Spark session initialized.")
+print("Spark session initialized in local mode.")
 
 # Step 3: S3 Configuration
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdealicanvas"  # The bucket to store the models
 model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model local directory
 
-# Step 4: Download Model from S3
+# Step 4: Download Model from S3 (if not already downloaded)
 if not os.path.exists(model_dir):
-    print(f"Downloading model from S3: s3://{bucket_name}/winemodels/{model_folder_name}/")
+    print(f"Downloading model from S3: s3://{bucket_name}/Wine_models/{model_folder_name}/")
     os.makedirs(model_dir, exist_ok=True)
-    s3_prefix = f"winemodels/{model_folder_name}"
+    s3_prefix = f"Wine_models/{model_folder_name}"
     for obj in s3_client.list_objects(Bucket=bucket_name, Prefix=s3_prefix).get('Contents', []):
         s3_key = obj['Key']
         local_path = os.path.join(model_dir, os.path.basename(s3_key))
@@ -58,18 +58,18 @@ else:
     local_validation_path = validation_data_path
     print(f"Using local validation file: {local_validation_path}")
 
-# Load validation dataset
+# Step 7: Load Validation Dataset
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
-# Step 7: Make Predictions
+# Step 8: Make Predictions
 predictions = pipeline_model.transform(validation_data)
 
 # Print predictions to console
 print("\nPredictions:")
 predictions.select("quality", "prediction").show(truncate=False)
 
-# Step 8: Evaluate Model
+# Step 9: Evaluate Model
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
 metrics = {
     "Accuracy": evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"}),
@@ -82,16 +82,16 @@ print("\nPrediction Evaluation Metrics:")
 for metric, value in metrics.items():
     print(f"{metric}: {value:.4f}")
 
-# Step 9: Upload Predictions Directly to S3
+# Step 10: Upload Predictions Directly to S3
 predictions_df = predictions.select("quality", "prediction").toPandas()
 
 # Save predictions to S3
-predictions_s3_key = "winemodels/WinePredictions.csv"
+predictions_s3_key = "Wine_models/WinePredictions.csv"
 csv_buffer = StringIO()
 predictions_df.to_csv(csv_buffer, index=False)
 s3_client.put_object(Bucket=bucket_name, Key=predictions_s3_key, Body=csv_buffer.getvalue())
 print(f"Predictions uploaded directly to S3: s3://{bucket_name}/{predictions_s3_key}")
 
-# Step 10: Stop Spark Session
+# Step 11: Stop Spark Session
 spark.stop()
 print("Spark session stopped.")
