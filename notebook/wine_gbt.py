@@ -4,7 +4,7 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassifier, GBTClassifier
+from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassifier, LogisticRegression
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from datetime import datetime
@@ -40,48 +40,49 @@ rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", s
 # DecisionTree Classifier
 dt = DecisionTreeClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
 
-# GradientBoosting Classifier
-gbt = GBTClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
+# Logistic Regression
+lr = LogisticRegression(labelCol="quality", featuresCol="scaled_features", family="multinomial", maxIter=10, regParam=0.01, elasticNetParam=0.8)
 
-# Parameter Grid for RandomForest (corrected minInstancesPerNode)
+# Parameter Grid for RandomForest (multi-class)
 paramGrid_rf = ParamGridBuilder() \
-    .addGrid(rf.numTrees, [10, 50, 100]) \
+    .addGrid(rf.numTrees, [10, 20, 50]) \
     .addGrid(rf.maxDepth, [5, 10, 15]) \
-    .addGrid(rf.minInstancesPerNode, [1, 2, 4]).addGrid(rf.impurity, ['gini', 'entropy']) \
+    .addGrid(rf.impurity, ['gini', 'entropy']) \
     .build()
 
-# Parameter Grid for DecisionTree (corrected minInstancesPerNode)
+# Parameter Grid for DecisionTree (multi-class)
 paramGrid_dt = ParamGridBuilder() \
     .addGrid(dt.maxDepth, [5, 10, 15]) \
-    .addGrid(dt.minInstancesPerNode, [1, 2, 4]).addGrid(dt.maxBins, [16, 32]) \
+    .addGrid(dt.maxBins, [16, 32]) \
     .build()
 
-# Parameter Grid for GradientBoosting
-paramGrid_gbt = ParamGridBuilder() \
-    .addGrid(gbt.maxDepth, [5, 10, 15]) \
-    .addGrid(gbt.maxIter, [10, 20, 30]) \
+# Parameter Grid for Logistic Regression
+paramGrid_lr = ParamGridBuilder() \
+    .addGrid(lr.maxIter, [10, 20]) \
+    .addGrid(lr.regParam, [0.01, 0.1]) \
+    .addGrid(lr.elasticNetParam, [0.8, 0.9]) \
     .build()
 
 # Step 6: Cross-validation with more folds (5-fold cross-validation)
 crossval_rf = CrossValidator(estimator=rf,
                               estimatorParamMaps=paramGrid_rf,
                               evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                              numFolds=5)  # Increased to 5-folds
+                              numFolds=5)  # 5-fold cross-validation
 
 crossval_dt = CrossValidator(estimator=dt,
                               estimatorParamMaps=paramGrid_dt,
                               evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                              numFolds=5)
+                              numFolds=5)  # 5-fold cross-validation
 
-crossval_gbt = CrossValidator(estimator=gbt,
-                               estimatorParamMaps=paramGrid_gbt,
-                               evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
-                               numFolds=5)
+crossval_lr = CrossValidator(estimator=lr,
+                              estimatorParamMaps=paramGrid_lr,
+                              evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
+                              numFolds=5)  # 5-fold cross-validation
 
 # Step 7: Create Pipelines
 pipeline_rf = Pipeline(stages=[assembler, scaler, crossval_rf])
 pipeline_dt = Pipeline(stages=[assembler, scaler, crossval_dt])
-pipeline_gbt = Pipeline(stages=[assembler, scaler, crossval_gbt])
+pipeline_lr = Pipeline(stages=[assembler, scaler, crossval_lr])
 
 # Step 8: Train Models with Cross-validation
 print("Training RandomForest model with hyperparameter tuning...")
@@ -92,33 +93,33 @@ print("Training DecisionTree model with hyperparameter tuning...")
 pipeline_model_dt = pipeline_dt.fit(train_data)
 print("DecisionTree model training completed.")
 
-print("Training GradientBoosting model with hyperparameter tuning...")
-pipeline_model_gbt = pipeline_gbt.fit(train_data)
-print("GradientBoosting model training completed.")
+print("Training Logistic Regression model with hyperparameter tuning...")
+pipeline_model_lr = pipeline_lr.fit(train_data)
+print("Logistic Regression model training completed.")
 
 # Step 9: Evaluate Models on Test Data
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
 accuracy_rf = evaluator.evaluate(pipeline_model_rf.transform(test_data))
 accuracy_dt = evaluator.evaluate(pipeline_model_dt.transform(test_data))
-accuracy_gbt = evaluator.evaluate(pipeline_model_gbt.transform(test_data))
+accuracy_lr = evaluator.evaluate(pipeline_model_lr.transform(test_data))
 
 # Step 10: Model Comparison
 print(f"RandomForest accuracy: {accuracy_rf:.4f}")
 print(f"DecisionTree accuracy: {accuracy_dt:.4f}")
-print(f"GradientBoosting accuracy: {accuracy_gbt:.4f}")
+print(f"Logistic Regression accuracy: {accuracy_lr:.4f}")
 
 # Step 11: Choose the Best Model
 best_model = None
 model_name = ""
-if accuracy_rf > accuracy_dt and accuracy_rf > accuracy_gbt:
+if accuracy_rf > accuracy_dt and accuracy_rf > accuracy_lr:
     best_model = pipeline_model_rf
     model_name = "RandomForestModel"
-elif accuracy_dt > accuracy_rf and accuracy_dt > accuracy_gbt:
+elif accuracy_dt > accuracy_rf and accuracy_dt > accuracy_lr:
     best_model = pipeline_model_dt
     model_name = "DecisionTreeModel"
 else:
-    best_model = pipeline_model_gbt
-    model_name = "GradientBoostingModel"
+    best_model = pipeline_model_lr
+    model_name = "LogisticRegressionModel"
 
 # Step 12: Save Best Model to S3
 s3_client = boto3.client('s3')
