@@ -79,13 +79,16 @@ else:
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
-# Step 7: Ensure No Duplicate 'features' or 'scaled_features' Column
+# Step 7: Ensure No Duplicate 'features' Column
 # Drop existing 'features' column if it exists before applying transformations
 if 'features' in validation_data.columns:
     validation_data = validation_data.drop('features')
 
 # Apply feature assembly and scaling to validation data
-assembler = VectorAssembler(inputCols=[col for col in validation_data.columns if col != "quality"], outputCol="features")
+feature_cols = [col for col in validation_data.columns if col != "quality"]
+
+# Assemble the features
+assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
 # Apply transformations
