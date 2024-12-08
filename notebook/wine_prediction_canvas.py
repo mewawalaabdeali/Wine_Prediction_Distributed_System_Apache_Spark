@@ -19,8 +19,7 @@ model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "Pipeli
 # Step 2: Initialize Spark Session (Local for one machine)
 spark = SparkSession.builder \
     .appName("Wine_Quality_Prediction") \
-    .master("local[*]") \  # Explicitly set master to local
-    .getOrCreate()
+    .master("local[*]").getOrCreate()
 
 print("Spark session initialized in local mode.")
 
