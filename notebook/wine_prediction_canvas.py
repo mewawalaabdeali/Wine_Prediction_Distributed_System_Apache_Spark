@@ -10,18 +10,18 @@ from pyspark.sql.functions import col
 
 # Step 1: Capture Command-Line Arguments
 if len(sys.argv) != 3:
-    print("Usage: python prediction.py <validation_file_path_or_s3> <model_folder_name>")
+    print("Usage: spark-submit wine_prediction_canvas.py <validation_file_path_or_s3> <model_folder_name>")
     sys.exit(1)
 
 validation_data_path = sys.argv[1]  # Validation dataset path (local or S3)
 model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "PipelineModel_20241203152045")
 
-# Step 2: Initialize Spark Session (Local for one machine)
+# Step 2: Initialize Spark Session
 spark = SparkSession.builder \
     .appName("Wine_Quality_Prediction") \
-    .master("local[*]").getOrCreate()
+    .getOrCreate()  # Automatically determines whether to run in local or cluster mode
 
-print("Spark session initialized in local mode.")
+print("Spark session initialized.")
 
 # Step 3: S3 Configuration
 s3_client = boto3.client('s3')
@@ -41,7 +41,7 @@ if not os.path.exists(model_dir):
 else:
     print(f"Model found locally at: {model_dir}")
 
-# Step 5: Load Model (Local mode will handle this)
+# Step 5: Load Model (Ensure the path is correct for local mode)
 pipeline_model = PipelineModel.load(model_dir)  # Ensure this points to the correct local model directory
 print(f"Model loaded successfully from: {model_dir}")
 
