@@ -85,10 +85,7 @@ if 'features' in validation_data.columns:
     validation_data = validation_data.drop('features')
 
 # Apply feature assembly and scaling to validation data
-feature_cols = [col for col in validation_data.columns if col != "quality"]
-
-# Assemble the features
-assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
+assembler = VectorAssembler(inputCols=[col for col in validation_data.columns if col != "quality"], outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
 # Apply transformations
