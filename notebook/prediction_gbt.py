@@ -6,6 +6,7 @@ from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from io import StringIO
 import pandas as pd
+from pyspark.sql.functions import col
 
 # Step 1: Capture Command-Line Arguments
 if len(sys.argv) != 3:
@@ -101,8 +102,7 @@ for metric, value in metrics.items():
 predictions_df = predictions.select("quality", "prediction").toPandas()
 
 # Save predictions to S3
-timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-predictions_s3_key = f"Wine_models/{model_folder_name}_Predictions_{timestamp}.csv"
+predictions_s3_key = f"Wine_models/{model_folder_name}_Predictions.csv"
 csv_buffer = StringIO()
 predictions_df.to_csv(csv_buffer, index=False)
 
