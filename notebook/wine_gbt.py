@@ -41,9 +41,11 @@ weight_dict = {row['quality']: row['weight'] for row in weight_df.collect()}
 weight_df_broadcast = spark.sparkContext.broadcast(weight_dict)
 
 # Step 4: Add weight column based on class label
-# Here, we use a `when` statement to add the weights to the `data` DataFrame.
-data = data.withColumn("weight", when(col("quality") == 5, lit(weight_dict[5]))
-                                     .otherwise(lit(weight_dict.get(col("quality"), 1))))  # Default weight is 1 for others
+# Use the broadcasted weight dictionary to apply weights to the "weight" column.
+data = data.withColumn("weight", 
+                       when(col("quality") == 5, lit(weight_dict[5]))
+                       .when(col("quality") == 6, lit(weight_dict[6]))
+                       .otherwise(lit(1)))  # Default weight is 1 for other classes
 
 # Step 5: Train-Test Split
 train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
@@ -179,5 +181,7 @@ print(f"[Test]  F1 Score      : {test_f1:.4f}")
 print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
 print("***********************************************************************")
 
+
 # Step 16: Stop Spark Session
 spark.stop()
+print("Spark session stopped.")
