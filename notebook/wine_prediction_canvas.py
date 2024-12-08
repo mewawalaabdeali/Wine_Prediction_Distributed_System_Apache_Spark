@@ -43,7 +43,8 @@ else:
     print(f"Model found locally at: {model_dir}")
 
 # Step 5: Load Model
-pipeline_model = PipelineModel.load(model_dir)  # Ensure the model path is correct
+model_dir = "/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"
+pipeline_model = PipelineModel.load(model_dir)  # Make sure this points to the correct local model directory
 print(f"Model loaded successfully from: {model_dir}")
 
 # Step 6: Handle Validation File
