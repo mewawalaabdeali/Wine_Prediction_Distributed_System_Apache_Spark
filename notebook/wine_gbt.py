@@ -8,7 +8,7 @@ from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassi
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from datetime import datetime
-from pyspark.sql.functions import col, when
+from pyspark.sql.functions import col, when, lit
 from pyspark import SparkConf
 
 # Step 1: Initialize Spark Session for Cluster Mode
@@ -40,23 +40,22 @@ weight_dict = {row['quality']: row['weight'] for row in weight_df.collect()}
 # Broadcast the weight dictionary
 weight_df_broadcast = spark.sparkContext.broadcast(weight_dict)
 
-# Add weight column to the dataset based on the class label
-data = data.withColumn("weight", when(col("quality").isNotNull(), 
-                                         when(col("quality") == 5, weight_df_broadcast.value[5])
-                                         .otherwise(weight_df_broadcast.value[col("quality")]))
-)
+# Step 4: Add weight column based on class label
+# Here, we use a `when` statement to add the weights to the `data` DataFrame.
+data = data.withColumn("weight", when(col("quality") == 5, lit(weight_dict[5]))
+                                     .otherwise(lit(weight_dict.get(col("quality"), 1))))  # Default weight is 1 for others
 
-# Step 4: Train-Test Split
+# Step 5: Train-Test Split
 train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
 
-# Step 5: Feature Engineering
+# Step 6: Feature Engineering
 feature_cols = [col for col in train_data.columns if col != "quality" and col != "weight"]
 
 # Assemble the features
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
-# Step 6: Model and Hyperparameter Tuning (Optimized)
+# Step 7: Model and Hyperparameter Tuning (Optimized)
 # RandomForest Classifier
 rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", weightCol="weight", seed=42)
 
@@ -86,7 +85,7 @@ paramGrid_lr = ParamGridBuilder() \
     .addGrid(lr.elasticNetParam, [0.8, 0.9]) \
     .build()
 
-# Step 7: Cross-validation with more folds (5-fold cross-validation)
+# Step 8: Cross-validation with more folds (5-fold cross-validation)
 crossval_rf = CrossValidator(estimator=rf,
                               estimatorParamMaps=paramGrid_rf,
                               evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
@@ -102,12 +101,12 @@ crossval_lr = CrossValidator(estimator=lr,
                               evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
                               numFolds=5)  # 5-fold cross-validation
 
-# Step 8: Create Pipelines
+# Step 9: Create Pipelines
 pipeline_rf = Pipeline(stages=[assembler, scaler, crossval_rf])
 pipeline_dt = Pipeline(stages=[assembler, scaler, crossval_dt])
 pipeline_lr = Pipeline(stages=[assembler, scaler, crossval_lr])
 
-# Step 9: Train Models with Cross-validation
+# Step 10: Train Models with Cross-validation
 print("Training RandomForest model with hyperparameter tuning...")
 pipeline_model_rf = pipeline_rf.fit(train_data)
 print("RandomForest model training completed.")
@@ -120,7 +119,7 @@ print("Training Logistic Regression model with hyperparameter tuning...")
 pipeline_model_lr = pipeline_lr.fit(train_data)
 print("Logistic Regression model training completed.")
 
-# Step 10: Evaluate Models on Test Data
+# Step 11: Evaluate Models on Test Data
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
 accuracy_rf = evaluator.evaluate(pipeline_model_rf.transform(test_data))
 accuracy_dt = evaluator.evaluate(pipeline_model_dt.transform(test_data))
@@ -132,12 +131,12 @@ f1_rf = evaluator_f1.evaluate(pipeline_model_rf.transform(test_data))
 f1_dt = evaluator_f1.evaluate(pipeline_model_dt.transform(test_data))
 f1_lr = evaluator_f1.evaluate(pipeline_model_lr.transform(test_data))
 
-# Step 11: Model Comparison
+# Step 12: Model Comparison
 print(f"RandomForest accuracy: {accuracy_rf:.4f}, F1 Score: {f1_rf:.4f}")
 print(f"DecisionTree accuracy: {accuracy_dt:.4f}, F1 Score: {f1_dt:.4f}")
 print(f"Logistic Regression accuracy: {accuracy_lr:.4f}, F1 Score: {f1_lr:.4f}")
 
-# Step 12: Choose the Best Model
+# Step 13: Choose the Best Model
 best_model = None
 model_name = ""
 if f1_rf > f1_dt and f1_rf > f1_lr:
@@ -150,7 +149,7 @@ else:
     best_model = pipeline_model_lr
     model_name = "LogisticRegressionModel"
 
-# Step 13: Save Best Model to S3
+# Step 14: Save Best Model to S3
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdeali"
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -159,7 +158,7 @@ model_dir = f"s3a://{bucket_name}/Testing_models/{model_name}_{timestamp}"
 best_model.write().overwrite().save(model_dir)
 print(f"Best model saved to: {model_dir}")
 
-# Step 14: Evaluate Final Model Metrics
+# Step 15: Evaluate Final Model Metrics
 train_prediction = best_model.transform(train_data)
 test_prediction = best_model.transform(test_data)
 
@@ -180,5 +179,5 @@ print(f"[Test]  F1 Score      : {test_f1:.4f}")
 print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
 print("***********************************************************************")
 
-# Step 15: Stop Spark Session
+# Step 16: Stop Spark Session
 spark.stop()
