@@ -39,7 +39,7 @@ if not os.path.exists(model_dir):
     # List the contents of the S3 model folder
     try:
         s3_objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=s3_model_path)
-        if 'Contents' in s3_objects:
+        if 'Contents' in s3_objects and len(s3_objects['Contents']) > 0:
             # Create the model directory if it doesn't exist
             os.makedirs(model_dir, exist_ok=True)
             # Download the model from S3
