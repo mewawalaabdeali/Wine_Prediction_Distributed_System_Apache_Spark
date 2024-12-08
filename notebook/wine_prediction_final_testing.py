@@ -22,7 +22,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Step 3: Set Up Model Directory
-model_dir = os.path.join("/Wine_Prediction_Distributed_System_Apache_Spark/models", model_folder_name)  # Model directory inside the container
+model_dir = os.path.join("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models", model_folder_name)  # Model directory inside the container
 
 # Step 4: S3 Model Path (updated to your personal account and path)
 s3_model_path = f"s3://winepredictionabdeali/Testing_models/{model_folder_name}/"  # Updated to the new path
