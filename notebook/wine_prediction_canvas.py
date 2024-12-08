@@ -37,17 +37,21 @@ if not os.path.exists(model_dir):
     s3_prefix = f"Wine_models/{model_folder_name}"
     s3_objects = s3_client.list_objects(Bucket="winepredictionabdealicanvas", Prefix=s3_prefix)
 
-    # Check if there are objects in this folder
-    if 'Contents' not in s3_objects:
+    # Debugging: Print the response from S3 to verify objects
+    if 'Contents' in s3_objects:
+        print(f"Found {len(s3_objects['Contents'])} files in the model folder.")
+        for obj in s3_objects['Contents']:
+            print(f"Found file: {obj['Key']}")
+            s3_key = obj['Key']
+            local_path = os.path.join(model_dir, os.path.basename(s3_key))  # Create local path for each file
+            try:
+                s3_client.download_file("winepredictionabdealicanvas", s3_key, local_path)
+                print(f"Downloaded: {s3_key} to {local_path}")
+            except Exception as e:
+                print(f"Error downloading {s3_key}: {str(e)}")
+    else:
         print(f"Error: No files found in the model folder {s3_prefix} on S3")
         sys.exit(1)
-    
-    # Download all files
-    for obj in s3_objects['Contents']:
-        s3_key = obj['Key']
-        local_path = os.path.join(model_dir, os.path.basename(s3_key))  # Create local path for each file
-        s3_client.download_file("winepredictionabdealicanvas", s3_key, local_path)
-        print(f"Downloaded: {s3_key} to {local_path}")
     
     print(f"Model downloaded to: {model_dir}")
 else:
