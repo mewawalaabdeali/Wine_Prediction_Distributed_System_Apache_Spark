@@ -4,7 +4,7 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from pyspark.ml.feature import VectorAssembler, StandardScaler  # Add this import
+from pyspark.ml.feature import VectorAssembler, StandardScaler  # Added VectorAssembler
 from io import StringIO
 import pandas as pd
 from pyspark.sql.functions import col
@@ -79,15 +79,15 @@ else:
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
-# Step 7: Ensure no conflict with existing 'scaled_features' column
-if 'scaled_features' in validation_data.columns:
-    validation_data = validation_data.drop('scaled_features')
+# Step 7: Ensure No Duplicate 'features' Column
+if 'features' in validation_data.columns:
+    validation_data = validation_data.drop('features')  # Drop existing 'features' column if it exists
 
-# Apply feature scaling (same as during training)
+# Apply feature assembly and scaling to validation data
 assembler = VectorAssembler(inputCols=[col for col in validation_data.columns if col != "quality"], outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
-# Apply feature transformation pipeline to validation data
+# Apply transformations
 validation_data = assembler.transform(validation_data)
 validation_data = scaler.fit(validation_data).transform(validation_data)
 
