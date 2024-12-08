@@ -47,13 +47,14 @@ gbt = GBTClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
 paramGrid_rf = ParamGridBuilder() \
     .addGrid(rf.numTrees, [10, 50, 100]) \
     .addGrid(rf.maxDepth, [5, 10, 15]) \
-    .addGrid(rf.minInstancesPerNode, [1, 2, 4]).addGrid(rf.impurity, ['gini', 'entropy']) \
+    .addGrid(rf.minInstancesPerNode, [1, 2, 4]) \  # Corrected parameter name
+    .addGrid(rf.impurity, ['gini', 'entropy']) \
     .build()
 
-# Parameter Grid for DecisionTree
+# Parameter Grid for DecisionTree (corrected minInstancesPerNode)
 paramGrid_dt = ParamGridBuilder() \
     .addGrid(dt.maxDepth, [5, 10, 15]) \
-    .addGrid(dt.minSamplesLeaf, [1, 2, 4]) \
+    .addGrid(dt.minInstancesPerNode, [1, 2, 4]) \  # Corrected parameter name
     .addGrid(dt.maxBins, [16, 32]) \
     .build()
 
