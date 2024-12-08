@@ -14,7 +14,7 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 validation_data_path = sys.argv[1]  # Validation dataset path (local or S3)
-model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "PipelineModel_20241203152045")
+model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "PipelineModel_Grid_20241203154144")
 
 # Step 2: Initialize Spark Session (Local for one machine)
 spark = SparkSession.builder \
@@ -24,31 +24,30 @@ spark = SparkSession.builder \
 
 print("Spark session initialized in local mode.")
 
-# Step 3: Set Up Model Directory
-model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model directory on local system
+# Step 3: S3 Configuration
+s3_client = boto3.client('s3')
+bucket_name = "winepredictionabdealicanvas"  # The bucket to store the models
+model_dir = f"/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/models/{model_folder_name}"  # Model local directory
 
-# Step 4: Download the Model from S3 if not already present
+# Step 4: Download Model from S3 (if not already downloaded)
 if not os.path.exists(model_dir):
-    print(f"Downloading model from S3: s3://winepredictionabdealicanvas/Wine_models/{model_folder_name}/")
+    print(f"Downloading model from S3: s3://{bucket_name}/Wine_models/{model_folder_name}/")
     os.makedirs(model_dir, exist_ok=True)
-    s3_client = boto3.client("s3")
-    
-    # List all files in the model directory on S3
     s3_prefix = f"Wine_models/{model_folder_name}"
-    s3_objects = s3_client.list_objects(Bucket="winepredictionabdealicanvas", Prefix=s3_prefix)
 
-    # Debugging: Print the response from S3 to verify objects
+    # List all files in the model directory on S3, including subfolders
+    s3_objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=s3_prefix)
+    
+    # Check if there are objects in the folder
     if 'Contents' in s3_objects:
-        print(f"Found {len(s3_objects['Contents'])} files in the model folder.")
         for obj in s3_objects['Contents']:
-            print(f"Found file: {obj['Key']}")
             s3_key = obj['Key']
-            local_path = os.path.join(model_dir, os.path.basename(s3_key))  # Create local path for each file
-            try:
-                s3_client.download_file("winepredictionabdealicanvas", s3_key, local_path)
-                print(f"Downloaded: {s3_key} to {local_path}")
-            except Exception as e:
-                print(f"Error downloading {s3_key}: {str(e)}")
+            local_path = os.path.join(model_dir, os.path.relpath(s3_key, s3_prefix))  # Correct the local path structure
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)  # Ensure the folder structure is created
+            
+            # Download the file
+            s3_client.download_file(bucket_name, s3_key, local_path)
+            print(f"Downloaded: {s3_key} to {local_path}")
     else:
         print(f"Error: No files found in the model folder {s3_prefix} on S3")
         sys.exit(1)
@@ -57,40 +56,34 @@ if not os.path.exists(model_dir):
 else:
     print(f"Model found locally at: {model_dir}")
 
-# Validate metadata file
-metadata_path = os.path.join(model_dir, "metadata")
-if not os.path.exists(metadata_path):
-    print(f"Error: Metadata file not found in model directory: {metadata_path}")
-    sys.exit(1)
-
-# Step 5: Load the Model
+# Step 5: Load Model
 pipeline_model = PipelineModel.load(model_dir)
 print(f"Model loaded successfully from: {model_dir}")
 
 # Step 6: Handle Validation File
 if validation_data_path.startswith("s3://"):
     # If validation file is in S3, download it
-    bucket_name, s3_key = validation_data_path[5:].split("/", 1)
+    s3_validation_bucket, s3_validation_key = validation_data_path[5:].split("/", 1)
     local_validation_path = "/home/hadoop/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
-    s3_client.download_file(bucket_name, s3_key, local_validation_path)
+    s3_client.download_file(s3_validation_bucket, s3_validation_key, local_validation_path)
     print(f"Validation file downloaded from S3: {validation_data_path}")
 else:
     # Assume local file path
     local_validation_path = validation_data_path
     print(f"Using local validation file: {local_validation_path}")
 
-# Step 7: Load Validation Dataset
+# Load validation dataset
 validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
 validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
 
-# Step 8: Make Predictions
+# Step 7: Make Predictions
 predictions = pipeline_model.transform(validation_data)
 
 # Print predictions to console
 print("\nPredictions:")
 predictions.select("quality", "prediction").show(truncate=False)
 
-# Step 9: Evaluate Model
+# Step 8: Evaluate Model
 evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
 metrics = {
     "Accuracy": evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"}),
@@ -103,7 +96,7 @@ print("\nPrediction Evaluation Metrics:")
 for metric, value in metrics.items():
     print(f"{metric}: {value:.4f}")
 
-# Step 10: Upload Predictions to S3
+# Step 9: Upload Predictions to S3
 predictions_df = predictions.select("quality", "prediction").toPandas()
 
 # Save predictions to S3
@@ -111,9 +104,9 @@ predictions_s3_key = f"Wine_models/{model_folder_name}_Predictions.csv"
 csv_buffer = StringIO()
 predictions_df.to_csv(csv_buffer, index=False)
 
-s3_client.put_object(Bucket="winepredictionabdealicanvas", Key=predictions_s3_key, Body=csv_buffer.getvalue())
-print(f"Predictions uploaded to S3: s3://winepredictionabdealicanvas/{predictions_s3_key}")
+s3_client.put_object(Bucket="winepredictionabdeali", Key=predictions_s3_key, Body=csv_buffer.getvalue())
+print(f"Predictions uploaded to S3: s3://winepredictionabdeali/{predictions_s3_key}")
 
-# Step 11: Stop Spark Session
+# Step 10: Stop Spark Session
 spark.stop()
 print("Spark session stopped.")
