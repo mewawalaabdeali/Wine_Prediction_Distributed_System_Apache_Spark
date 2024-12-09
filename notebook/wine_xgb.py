@@ -19,7 +19,7 @@ spark = SparkSession.builder.config(conf=conf).getOrCreate()
 print("Spark session initialized in cluster mode.")
 
 # Step 2: Load and Clean Data
-data_path = "s3://winepredictionabdealicanvas/winemodels/TrainingDataset.csv"  # S3 path for training data
+data_path = "s3://winepredictionabdeali/TrainingDataset.csv"  # S3 path for training data
 data = spark.read.csv(data_path, header=True, inferSchema=True, sep=";")
 data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Clean column names
 print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.columns)} columns.")
@@ -125,7 +125,7 @@ else:
 s3_client = boto3.client('s3')
 bucket_name = "winepredictionabdealicanvas"  # Updated S3 bucket
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-model_dir = f"s3a://{bucket_name}/winemodels/{model_name}_{timestamp}"
+model_dir = f"s3a://winepredictionabdeali/Testing_models/{model_name}_{timestamp}"
 
 best_model.write().overwrite().save(model_dir)
 print(f"Best model saved to: {model_dir}")
