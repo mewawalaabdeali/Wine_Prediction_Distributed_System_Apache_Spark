@@ -1,123 +1,159 @@
-import boto3
+import boto3 
 import os
 import sys
 from pyspark.sql import SparkSession
-from pyspark.ml import PipelineModel
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.ml.classification import RandomForestClassifier, DecisionTreeClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from io import StringIO
-import pandas as pd
-from pyspark.sql.functions import col
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from datetime import datetime
+from pyspark.sql.functions import col, when
+from pyspark import SparkConf
+import numpy as np
 
-# Step 1: Capture Command-Line Arguments
-if len(sys.argv) != 3:
-    print("Usage: python prediction.py <validation_file_path_or_s3> <model_folder_name>")
-    sys.exit(1)
+# Step 1: Initialize Spark Session for Cluster Mode
+conf = SparkConf().setAppName("Wine_Quality_Training_Distributed")
+spark = SparkSession.builder.config(conf=conf).getOrCreate()
 
-validation_data_path = sys.argv[1]  # Validation dataset path (local or S3)
-model_folder_name = sys.argv[2]  # Folder name of the saved model (e.g., "PipelineModel_Grid_20241203154144")
+print("Spark session initialized in cluster mode.")
 
-# Step 2: Initialize Spark Session
-spark = SparkSession.builder \
-    .appName("Wine_Quality_Prediction") \
-    .master("local[*]") \
-    .getOrCreate()
+# Step 2: Load and Clean Data
+data_path = "s3://winepredictionabdealicanvas/winemodels/TrainingDataset.csv"  # S3 path for training data
+data = spark.read.csv(data_path, header=True, inferSchema=True, sep=";")
+data = data.toDF(*[col.strip().replace('"', '') for col in data.columns])  # Clean column names
+print(f"Data loaded from {data_path} with {data.count()} rows and {len(data.columns)} columns.")
 
-# Step 3: Set Up Model Directory
-model_dir = os.path.join("/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/models", model_folder_name)  # Model directory inside the container
+# Step 3: Handle Class Imbalance with Sampling (Random OverSampling)
+# Count of each class in the 'quality' column
+class_counts = data.groupBy('quality').count().collect()
+class_counts = {row['quality']: row['count'] for row in class_counts}
 
-# Step 4: S3 Model Path (updated to your personal account and path)
-s3_model_path = f"s3://winepredictionabdeali/Testing_models/{model_folder_name}/"  # Updated to the new path
+# Get the majority class count
+max_class_count = max(class_counts.values())
 
-# Step 5: Download Model from S3 if not found locally
-s3_client = boto3.client('s3')
-if not os.path.exists(model_dir):
-    print(f"Model not found locally. Attempting to download from S3: {s3_model_path}")
-    try:
-        # List the contents of the S3 model folder
-        s3_objects = s3_client.list_objects_v2(Bucket="winepredictionabdeali", Prefix=f"Testing_models/{model_folder_name}")  # Updated to personal bucket and new path
-        if 'Contents' in s3_objects and len(s3_objects['Contents']) > 0:
-            # Create the model directory if it doesn't exist
-            os.makedirs(model_dir, exist_ok=True)
-            # Download the model from S3
-            for obj in s3_objects['Contents']:
-                s3_key = obj['Key']
-                local_path = os.path.join(model_dir, os.path.relpath(s3_key, f"Testing_models/{model_folder_name}"))
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                s3_client.download_file("winepredictionabdeali", s3_key, local_path)  # Updated to personal bucket
-            print(f"Model downloaded to: {model_dir}")
-        else:
-            print(f"No model found in S3 at {s3_model_path}")
-            sys.exit(1)
-    except Exception as e:
-        print(f"Error downloading model from S3: {e}")
-        sys.exit(1)
+# Create an empty DataFrame for oversampling
+oversampled_df = None
 
-# Validate model directory
-metadata_path = os.path.join(model_dir, "metadata")
-if not os.path.exists(metadata_path):
-    print(f"Error: Metadata file not found in model directory: {metadata_path}")
-    sys.exit(1)
+# For each class, generate synthetic data (oversampling)
+for quality, count in class_counts.items():
+    # Filter the data for this specific class
+    class_data = data.filter(col("quality") == quality)
+    
+    # Calculate how many samples are needed for oversampling
+    needed_samples = max_class_count - count
+    
+    # Create a DataFrame with duplicates for oversampling
+    oversampled_class_data = class_data.unionAll(class_data.limit(needed_samples))
+    
+    # Append oversampled class data to the final DataFrame
+    if oversampled_df is None:
+        oversampled_df = oversampled_class_data
+    else:
+        oversampled_df = oversampled_df.unionAll(oversampled_class_data)
 
-# Load the model
-pipeline_model = PipelineModel.load(model_dir)
-print(f"Model loaded successfully from: {model_dir}")
+# Now oversampled_df contains the balanced data
+print(f"Balanced dataset size: {oversampled_df.count()}")
 
-# Step 6: Handle Validation File
-if validation_data_path.startswith("s3://"):
-    # If validation file is in S3, download it dynamically
-    s3_validation_bucket, s3_validation_key = validation_data_path[5:].split("/", 1)
-    local_validation_path = "/home/ubuntu/Wine_Prediction_Distributed_System_Apache_Spark/data/ValidationDataset.csv"
-    s3_client.download_file(s3_validation_bucket, s3_validation_key, local_validation_path)
-    print(f"Validation file downloaded from S3: {validation_data_path}")
-else:
-    # Assume local file path
-    local_validation_path = validation_data_path
-    print(f"Using local validation file: {local_validation_path}")
+# Step 4: Train-Test Split
+train_data, test_data = oversampled_df.randomSplit([0.8, 0.2], seed=42)
 
-# Load validation dataset
-validation_data = spark.read.csv(local_validation_path, header=True, inferSchema=True, sep=";")
-validation_data = validation_data.toDF(*[col.strip().replace('"', '') for col in validation_data.columns])
+# Step 5: Feature Engineering
+feature_cols = [col for col in train_data.columns if col != "quality"]
 
-# Step 7: Feature Engineering
-feature_cols = [col for col in validation_data.columns if col != "quality"]
+# Assemble the features
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=True, withMean=False)
 
-# Apply transformations
-validation_data = assembler.transform(validation_data)
-validation_data = scaler.fit(validation_data).transform(validation_data)
+# Step 6: Model and Hyperparameter Tuning (Optimized)
+# RandomForest Classifier
+rf = RandomForestClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
 
-# Step 8: Make Predictions
-predictions = pipeline_model.transform(validation_data)
+# DecisionTree Classifier
+dt = DecisionTreeClassifier(labelCol="quality", featuresCol="scaled_features", seed=42)
 
-# Print predictions to console
-print("\nPredictions:")
-predictions.select("quality", "prediction").show(truncate=False)
+# Parameter Grid for RandomForest
+paramGrid = ParamGridBuilder() \
+    .addGrid(rf.numTrees, [10, 50]) \
+    .addGrid(rf.maxDepth, [5, 10]) \
+    .build()
 
-# Step 9: Evaluate Model
-evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction")
-metrics = {
-    "Accuracy": evaluator.evaluate(predictions, {evaluator.metricName: "accuracy"}),
-    "Precision": evaluator.evaluate(predictions, {evaluator.metricName: "weightedPrecision"}),
-    "Recall": evaluator.evaluate(predictions, {evaluator.metricName: "weightedRecall"}),
-    "F1 Score": evaluator.evaluate(predictions, {evaluator.metricName: "f1"}),
-}
+# Cross-validation for RandomForest
+crossval_rf = CrossValidator(estimator=rf,
+                              estimatorParamMaps=paramGrid,
+                              evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
+                              numFolds=3)
 
-print("\nPrediction Evaluation Metrics:")
-for metric, value in metrics.items():
-    print(f"{metric}: {value:.4f}")
+# Cross-validation for DecisionTree
+crossval_dt = CrossValidator(estimator=dt,
+                              estimatorParamMaps=paramGrid,
+                              evaluator=MulticlassClassificationEvaluator(labelCol="quality", metricName="accuracy"),
+                              numFolds=3)
 
-# Step 10: Upload Predictions to S3
-predictions_df = predictions.select("quality", "prediction").toPandas()
+# Step 7: Create Pipeline
+pipeline_rf = Pipeline(stages=[assembler, scaler, crossval_rf])
+pipeline_dt = Pipeline(stages=[assembler, scaler, crossval_dt])
 
-# Save predictions to S3
-predictions_s3_key = f"Wine_models/{model_folder_name}_Predictions.csv"
-csv_buffer = StringIO()
-predictions_df.to_csv(csv_buffer, index=False)
+# Step 8: Train Model (RandomForest)
+print("Training RandomForest model with hyperparameter tuning...")
+pipeline_model_rf = pipeline_rf.fit(train_data)
+print("RandomForest model training completed.")
 
-s3_client.put_object(Bucket="winepredictionabdeali", Key=predictions_s3_key, Body=csv_buffer.getvalue())  # Updated to personal bucket
-print(f"Predictions uploaded to S3: s3://winepredictionabdeali/{predictions_s3_key}")
+# Step 9: Train Model (DecisionTree)
+print("Training DecisionTree model with hyperparameter tuning...")
+pipeline_model_dt = pipeline_dt.fit(train_data)
+print("DecisionTree model training completed.")
 
-# Step 11: Stop Spark Session
+# Step 10: Evaluate Models
+evaluator = MulticlassClassificationEvaluator(labelCol="quality", predictionCol="prediction", metricName="accuracy")
+accuracy_rf = evaluator.evaluate(pipeline_model_rf.transform(test_data))
+accuracy_dt = evaluator.evaluate(pipeline_model_dt.transform(test_data))
+
+# Step 11: Save the Best Model to S3
+best_model = None
+model_name = ""
+if accuracy_rf > accuracy_dt:
+    best_model = pipeline_model_rf
+    model_name = "RandomForestModel"
+    print(f"RandomForest model performs better with accuracy: {accuracy_rf}")
+else:
+    best_model = pipeline_model_dt
+    model_name = "DecisionTreeModel"
+    print(f"DecisionTree model performs better with accuracy: {accuracy_dt}")
+
+# Step 12: Save Best Model to S3
+s3_client = boto3.client('s3')
+bucket_name = "winepredictionabdeali"  # Updated S3 bucket
+timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+model_dir = f"s3a://{bucket_name}/winemodels/{model_name}_{timestamp}"
+
+best_model.write().overwrite().save(model_dir)
+print(f"Best model saved to: {model_dir}")
+
+# Step 13: Print Model Name for Jenkins
+print(f"MODEL_NAME={model_name}_{timestamp}")
+
+# Step 14: Evaluate Model Metrics
+train_prediction = best_model.transform(train_data)
+test_prediction = best_model.transform(test_data)
+
+train_f1 = evaluator.evaluate(train_prediction, {evaluator.metricName: "f1"})
+test_f1 = evaluator.evaluate(test_prediction, {evaluator.metricName: "f1"})
+train_accuracy = evaluator.evaluate(train_prediction, {evaluator.metricName: "accuracy"})
+test_accuracy = evaluator.evaluate(test_prediction, {evaluator.metricName: "accuracy"})
+
+# Enhanced Metrics Output
+print("\n")
+print("***********************************************************************")
+print("+++++++++++++++++++++++ Model Evaluation Metrics ++++++++++++++++++++++")
+print("***********************************************************************")
+print(f"[Train] F1 Score      : {train_f1:.4f}")
+print(f"[Train] Accuracy      : {train_accuracy:.4f}")
+print("-----------------------------------------------------------------------")
+print(f"[Test]  F1 Score      : {test_f1:.4f}")
+print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
+print("***********************************************************************")
+
+# Step 15: Stop Spark Session
 spark.stop()
 print("Spark session stopped.")
