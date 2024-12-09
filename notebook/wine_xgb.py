@@ -123,7 +123,7 @@ else:
 
 # Step 12: Save Best Model to S3
 s3_client = boto3.client('s3')
-bucket_name = "winepredictionabdeali"  # Updated S3 bucket
+bucket_name = "winepredictionabdealicanvas"  # Updated S3 bucket
 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 model_dir = f"s3a://{bucket_name}/winemodels/{model_name}_{timestamp}"
 
