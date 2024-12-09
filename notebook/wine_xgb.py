@@ -12,7 +12,7 @@ import os
 import boto3
 from pyspark.sql.functions import col
 from pyspark import SparkConf
-from pyspark import xgboost as xgb
+import xgboost as xgb
 from pyspark.ml.classification import OneVsRest
 from pyspark.ml.classification import LogisticRegression as LR
 
