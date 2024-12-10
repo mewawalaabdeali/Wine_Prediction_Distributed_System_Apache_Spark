@@ -153,8 +153,7 @@ print("-----------------------------------------------------------------------")
 print(f"[Test]  F1 Score      : {test_f1:.4f}")
 print(f"[Test]  Accuracy      : {test_accuracy:.4f}")
 print("***********************************************************************")
-print(f"Best model saved to: {model_dir}")
-print(f"MODEL_NAME={model_name}_{timestamp}")
+
 
 
 # Step 15: Stop Spark Session
